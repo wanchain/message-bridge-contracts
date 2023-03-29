@@ -375,6 +375,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         
         try IWmbReceiver(data.targetContract).wmbReceive{gas: data.gasLimit}(data.messageData, messageId, data.sourceChainId, data.sourceContract) {
             // success, do nothing, end of the receive message function.
+            emit MessageIdExecuted(data.sourceChainId, messageId);
         } catch (bytes memory reason) {
             // revert nonce if any uncaught errors/exceptions if the ua chooses the blocking mode
             storedMessages[data.sourceChainId][data.sourceContract][data.targetContract] = StoredMessage(uint64(data.messageData.length), keccak256(data.messageData));
