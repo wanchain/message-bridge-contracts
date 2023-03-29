@@ -373,5 +373,4 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
             emit MessageStored(data.sourceChainId, data.sourceContract, data.targetContract, data.messageData, data.nonce, data.gasLimit, reason);
         }
     }
-
 }
