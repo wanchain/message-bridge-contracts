@@ -20,6 +20,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     uint256 public maxGasLimit;
     uint256 public defaultGasLimit;
 
+    uint256 public maxMessageLength;
+
     // Address of the signature verification contract
     address public signatureVerifier;
 
@@ -99,6 +101,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         chainId = _chainId;
         maxGasLimit = 8_000_000;
         defaultGasLimit = 2_000_000;
+        maxMessageLength = 10_000;
         signatureVerifier = _signatureVerifier;
         wanchainStoremanAdminSC = _wanchainStoremanAdminSC;
     }
@@ -116,10 +119,12 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     ) public payable nonReentrant returns (bytes32 messageId) {
         uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
         uint256 fee = estimateFee(targetChainId, gasLimit);
-        require(msg.value >= fee, "Insufficient WMB fee");
+        require(msg.value >= fee, "WmbGateway: Insufficient fee");
         if (msg.value > fee) {
             Address.sendValue(payable(msg.sender), msg.value - fee);
         }
+
+        require(messageData.length <= maxMessageLength, "WmbGateway: Message too long");
 
         messageId = keccak256(
             abi.encodePacked(
@@ -192,7 +197,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         uint256 targetChainId,
         uint256 gasLimit
     ) public view returns (uint256 fee) {
-        require(gasLimit <= maxGasLimit, "Gas limit exceeds maximum");
+        require(gasLimit <= maxGasLimit, "WmbGateway: Gas limit exceeds maximum");
         return baseFees[targetChainId] * gasLimit;
     }
 
@@ -218,9 +223,9 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     // Retries a failed message
     function retryFailedMessage(uint16 _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external {
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
-        require(sm.messageHash != bytes32(0), "No failed message stored");
-        require(sm.messageLength == messageData.length, "Invalid message length");
-        require(sm.messageHash == keccak256(messageData), "Invalid message hash");
+        require(sm.messageHash != bytes32(0), "WmbGateway: No failed message stored");
+        require(sm.messageLength == messageData.length, "WmbGateway: Invalid message length");
+        require(sm.messageHash == keccak256(messageData), "WmbGateway: Invalid message hash");
         delete storedMessages[_srcChainId][_srcAddress][_targetContract];
 
         uint nonce = nonces[_srcChainId][chainId][_srcAddress][_targetContract];
@@ -245,7 +250,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         // only the target contract could call resume function.
         address _targetContract = msg.sender;
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
-        require(sm.messageHash != bytes32(0), "No failed message stored");
+        require(sm.messageHash != bytes32(0), "WmbGateway: No failed message stored");
 
         delete storedMessages[_srcChainId][_srcAddress][_targetContract];
         
@@ -259,22 +264,27 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
     function batchSetBaseFees(uint256[] calldata _targetChainIds, uint256[] calldata _baseFees) external {
         // limit AccessControl
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
-        require(_targetChainIds.length == _baseFees.length, "Invalid input");
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
+        require(_targetChainIds.length == _baseFees.length, "WmbGateway: Invalid input");
         for (uint256 i = 0; i < _targetChainIds.length; i++) {
             baseFees[_targetChainIds[i]] = _baseFees[i];
         }
     }
 
     function setSignatureVerifier(address _signatureVerifier) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         signatureVerifier = _signatureVerifier;
     }
 
     function setGasLimit(uint256 _maxGasLimit, uint256 _defaultGasLimit) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "Caller is not an admin");
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         maxGasLimit = _maxGasLimit;
         defaultGasLimit = _defaultGasLimit;
+    }
+
+    function setMaxMessageLength(uint256 _maxMessageLength) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
+        maxMessageLength = _maxMessageLength;
     }
 
     /**
@@ -286,7 +296,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     }
 
     function dispatchMessageBatch(uint256 /*toChainId*/, Message[] calldata /*messages*/) external payable returns (bytes32 /*messageId*/) {
-        revert("Batch is not supported");
+        revert("WmbGateway: Batch is not supported");
     }
 
     /**
@@ -307,7 +317,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         uint endTime;
         (,status,,,,curveID,,PK,,startTime,endTime) = IWanchainMPC(wanchainStoremanAdminSC).getStoremanGroupConfig(smgID);
 
-        require(status == uint8(GroupStatus.ready) && block.timestamp >= startTime && block.timestamp <= endTime, "PK is not ready");
+        require(status == uint8(GroupStatus.ready) && block.timestamp >= startTime && block.timestamp <= endTime, "WmbGateway: SMG is not ready");
 
         return (curveID, PK);
     }
@@ -341,19 +351,19 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         bytes32 Ry = bytesToBytes32(sig.r, 32);
 
         // Verify the signature using the Wanchain MPC contract
-        require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.message), "Signature verification failed");
+        require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.message), "WmbGateway: Signature verification failed");
     }
 
     function _receiveMessage(
         bytes32 messageId,
         ReceiveMsgData memory data
     ) internal {
-        require(data.nonce == ++nonces[data.sourceChainId][chainId][data.sourceContract][data.targetContract], "Invalid nonce");
-        require(Address.isContract(data.targetContract), "Target address is not a contract");
+        require(data.nonce == ++nonces[data.sourceChainId][chainId][data.sourceContract][data.targetContract], "WmbGateway: Invalid nonce");
+        require(Address.isContract(data.targetContract), "WmbGateway: Target address is not a contract");
 
         // block if any message blocking
         StoredMessage storage sm = storedMessages[data.sourceChainId][data.sourceContract][data.targetContract];
-        require(sm.messageHash == bytes32(0), "The message is in blocking");
+        require(sm.messageHash == bytes32(0), "WmbGateway: The message is in blocking");
         
         try IWmbReceiver(data.targetContract).wmbReceive{gas: data.gasLimit}(data.messageData, messageId, data.sourceChainId, data.sourceContract) {
             // success, do nothing, end of the receive message function.
