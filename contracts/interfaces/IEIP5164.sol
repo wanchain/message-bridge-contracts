@@ -6,14 +6,14 @@ struct Message {
     bytes data;
 }
 
-interface IERC5164 {
+interface IEIP5164 {
 
     event MessageDispatched(
         bytes32 indexed messageId,
         address indexed from,
         uint256 indexed toChainId,
         address to,
-        bytes data,
+        bytes data
     );
 
     event MessageBatchDispatched(
@@ -27,9 +27,18 @@ interface IERC5164 {
 
     function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable returns (bytes32 messageId);
 
-    // MessageExecutor
-    // MessageExecutors MUST append the ABI-packed (messageId, fromChainId, from) to the calldata for each message being executed.
-    // to.call(abi.encodePacked(data, messageId, fromChainId, from));
+    /**
+     * MessageExecutor
+     *
+     * MessageExecutors MUST append the ABI-packed (messageId, fromChainId, from) to the calldata for each message being executed.
+     *
+     * to: The address of the contract to call.
+     * data: The data to cross-chain.
+     * messageId: The unique identifier of the message being executed.
+     * fromChainId: The ID of the chain the message originated from.
+     * from: The address of the sender of the message.
+     * to.call(abi.encodePacked(data, messageId, fromChainId, from));
+     */
 
     error MessageIdAlreadyExecuted(
         bytes32 messageId
