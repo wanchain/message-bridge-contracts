@@ -19,5 +19,5 @@ interface IWmbConfig {
      * @dev Sets the maximum global gas limit
      * @param maxGasLimit The maximum global gas limit value to set
      */
-    function setMaxGasLimit(uint256 maxGasLimit) external;
+    function setGasLimit(uint256 maxGasLimit, uint256 defaultMaxLimit) external;
 }

@@ -12,13 +12,14 @@ interface IWmbGateway {
      * @param targetContract Address of the target contract
      * @param messageData Data to send in the message
      * @param gasLimit Gas limit for the message call
+     * @return messageId The unique identifier of the message
      */
     function sendMessage(
         uint256 targetChainId,
         address targetContract,
         bytes calldata messageData,
         uint256 gasLimit
-    ) external payable;
+    ) external payable returns (bytes32 messageId);
 
     /**
      * @dev Receives a message sent from another chain and verifies the signature of the sender.
@@ -104,8 +105,7 @@ interface IWmbGateway {
     /**
      * @dev Forces resumption of a failed message's receipt, Only when the _targetContract needs to resume the message flow in blocking mode and clear the stored message
      * @param _srcChainId ID of the source chain
-     * @param _srcAddress Address of the
-     * @param _targetContract Address of the target contract
+     * @param _srcAddress Address of the source contract
      */
-    function forceResumeReceive(uint16 _srcChainId, address _srcAddress, address _targetContract) external;
+    function forceResumeReceive(uint16 _srcChainId, address _srcAddress) external;
 }
