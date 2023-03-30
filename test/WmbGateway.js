@@ -1,0 +1,164 @@
+const { expect } = require("chai");
+const { ethers } = require("hardhat");
+const Web3 = require("web3");
+
+describe("WmbGateway", function () {
+  let WmbGateway, wmbGateway, mockMPC, owner, addr1, addr2, chainId, accounts;
+
+  beforeEach(async function () {
+    WmbGateway = await ethers.getContractFactory("WmbGateway");
+    [owner, addr1, addr2] = await ethers.getSigners();
+    accounts = await ethers.getSigners();
+    accounts = accounts.map((account) => account.address);
+    wmbGateway = await WmbGateway.deploy();
+    await wmbGateway.deployed();
+    let MockMPC = await ethers.getContractFactory("MockMPC");
+    mockMPC = await MockMPC.deploy();
+    await wmbGateway.initialize(
+      owner.address,
+      '2153201998',
+      mockMPC.address,
+      mockMPC.address,
+    );
+    chainId = await wmbGateway.chainId();
+  });
+
+  describe("Deployment", function () {
+    it("should set the correct state variables", async function () {
+      // Check if owner is set correctly
+      const ret = await wmbGateway.hasRole(await wmbGateway.DEFAULT_ADMIN_ROLE(), owner.address);
+      expect(ret).to.equal(true);
+  
+      // Check if chainId is set correctly
+      const chainId = await wmbGateway.chainId();
+      expect(chainId).to.equal('2153201998');
+  
+      // Check if messagePool is set correctly
+      const signatureVerifier = await wmbGateway.signatureVerifier();
+      expect(signatureVerifier).to.equal(mockMPC.address);
+  
+      // Check if failedMessages is set correctly
+      const wanchainStoremanAdminSC = await wmbGateway.wanchainStoremanAdminSC();
+      expect(wanchainStoremanAdminSC).to.equal(mockMPC.address);
+    });
+  });
+  
+
+  describe("sendMessage", function () {
+    it("should send a message", async function () {
+      const targetChainId = 123;
+      const targetContract = "0x1234567890123456789012345678901234567890";
+      const messageData = "0x12345678";
+      const gasLimit = 200000;
+
+      const fee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+      const value = fee + 100;
+
+      const nonce = await wmbGateway.nonces(chainId, targetChainId, accounts[0], targetContract);
+
+      await wmbGateway.sendMessage(targetChainId, targetContract, messageData, gasLimit, {from: accounts[0], value: value});
+
+      const filter = {
+          address: wmbGateway.address,
+          fromBlock: 0,
+          toBlock: "latest",
+          topics: [ethers.utils.id("MessageSent(address,uint256,address,uint256,bytes,uint256,uint256,bytes32)")]
+      };
+
+      const events = await ethers.provider.getLogs(filter);
+      const event = events[0];
+      const interface = new ethers.utils.Interface(WmbGateway.interface.fragments);
+      const decodedEvent = interface.parseLog(event);
+
+      expect(decodedEvent.args.targetChainId).to.equal(targetChainId);
+      expect(decodedEvent.args.targetContract).to.equal(targetContract);
+      expect(decodedEvent.args.sourceChainId).to.equal(chainId);
+      expect(decodedEvent.args.messageData).to.equal(messageData);
+      expect(decodedEvent.args.nonce).to.equal(nonce+1);
+      expect(decodedEvent.args.gasLimit).to.equal(gasLimit);
+    });
+  });
+
+
+  describe("receiveMessage", function () {
+    it("should receive a message", async function () {
+      // TODO: Test receiveMessage functionality
+    });
+  });
+
+  describe("estimateFee", function () {
+    it("should estimate the correct fee", async function () {
+      // TODO: Test estimateFee functionality
+    });
+  });
+
+  describe("getNonce", function () {
+    it("should return the correct nonce", async function () {
+      // TODO: Test getNonce functionality
+    });
+  });
+
+  describe("getChainId", function () {
+    it("should return the correct chain ID", async function () {
+      // TODO: Test getChainId functionality
+    });
+  });
+
+  describe("hasStoredFailedMessage", function () {
+    it("should check if a failed message is stored", async function () {
+      // TODO: Test hasStoredFailedMessage functionality
+    });
+  });
+
+  describe("retryFailedMessage", function () {
+    it("should retry a failed message", async function () {
+      // TODO: Test retryFailedMessage functionality
+    });
+  });
+
+  describe("forceResumeReceive", function () {
+    it("should force resumption of a failed message's receipt", async function () {
+      // TODO: Test forceResumeReceive functionality
+    });
+  });
+
+  describe("Admin Functions", function () {
+    describe("batchSetBaseFees", function () {
+      it("should set base fees", async function () {
+        // TODO: Test batchSetBaseFees functionality
+      });
+    });
+
+    describe("setSignatureVerifier", function () {
+      it("should set the signature verifier", async function () {
+        // TODO: Test setSignatureVerifier functionality
+      });
+    });
+
+    describe("setGasLimit", function () {
+      it("should set the gas limit", async function () {
+        // TODO: Test setGasLimit functionality
+      });
+    });
+
+    describe("setMaxMessageLength", function () {
+      it("should set the max message length", async function () {
+        // TODO: Test setMaxMessageLength functionality
+      });
+    });
+  });
+
+  describe("EIP-5164 Functions", function () {
+    describe("dispatchMessage", function () {
+      it("should dispatch a message", async function () {
+        // TODO: Test dispatchMessage functionality
+      });
+    });
+
+    describe("dispatchMessageBatch", function () {
+      it("should revert", async function () {
+        // TODO: Test dispatchMessageBatch functionality
+      });
+    });
+  });
+});
