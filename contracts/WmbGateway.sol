@@ -113,7 +113,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         chainId = _chainId;
         maxGasLimit = 8_000_000;
-        minGasLimit = 100_000;
+        minGasLimit = 150_000;
         defaultGasLimit = 2_000_000;
         maxMessageLength = 10_000;
         signatureVerifier = _signatureVerifier;
