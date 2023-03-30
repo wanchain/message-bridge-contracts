@@ -75,6 +75,8 @@ describe("WmbGateway", function () {
       expect(decodedEvent.args.messageData).to.equal(messageData);
       expect(decodedEvent.args.nonce).to.equal(nonce+1);
       expect(decodedEvent.args.gasLimit).to.equal(gasLimit);
+
+      await wmbGateway.sendMessage(targetChainId, targetContract, messageData, gasLimit, {from: accounts[0], value: fee});
     });
   });
 
@@ -97,10 +99,88 @@ describe("WmbGateway", function () {
       const sourceContract = "0x1234567890123456789012345678901234567890";
       const targetContract = wmbReceiver.address;
       const messageData = "0x12345678";
-      const gasLimit = 200000;
+      const gasLimit = 2_000_000;
       const nonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
 
       await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
+
+      // Create message ID and signature
+      const messageId = ethers.utils.solidityKeccak256(
+          ["uint256", "address", "uint256", "address", "bytes", "uint256"],
+          [sourceChainId, sourceContract, chainId, targetContract, messageData, nonce + 1]
+      );
+
+      const sigData = {
+          messageId,
+          smgID: "0x1234567890123456789012345678901234567890123456789012345678901234",
+          r: "0x1234567812345678123456781234567812345678123456781234567812345678",
+          s: "0x1234567812345678123456781234567812345678123456781234567812345678",
+      };
+
+      // Receive message in WmbGateway contract
+      let ret = await wmbGateway.receiveMessage(
+          sourceChainId,
+          sourceContract,
+          targetContract,
+          messageData,
+          nonce + 1,
+          gasLimit,
+          sigData.smgID,
+          sigData.r,
+          sigData.s,
+          { gasLimit: gasLimit + 100_000 }
+      );
+
+      ret = await ret.wait();
+
+      // Verify that nonce is incremented
+      const newNonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+      expect(newNonce).to.equal(nonce + 1);
+
+      // Verify that message was delivered to the WmbReceiver contract
+      const receivedMessage = await wmbReceiver.receivedMessages(messageId);
+      expect(receivedMessage.data).to.equal(messageData);
+      expect(receivedMessage.fromChainId).to.equal(sourceChainId);
+      expect(receivedMessage.from).to.equal(sourceContract);
+    });
+  });
+
+  describe("estimateFee", function () {
+    it("should estimate the correct fee", async function () {
+      const targetChainId = 123;
+      const gasLimit = 200000;
+
+      // Then, set the base fee and check that the fee is updated accordingly
+      const newBaseFee = 10000000000;
+      await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
+
+      const newFee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+      const expectedNewFee = newBaseFee * gasLimit;
+
+      expect(newFee).to.equal(expectedNewFee);
+    });
+  });
+
+  describe("hasStoredFailedMessage", function () {
+    it("should check if a failed message is stored", async function () {
+      // Deploy dummy WmbReceiver contract
+      const WmbReceiver = await ethers.getContractFactory("MockApp");
+      const wmbReceiver = await WmbReceiver.deploy(
+        accounts[0],
+        wmbGateway.address,
+        true,
+      );
+      await wmbReceiver.deployed();
+
+      // Get nonce and fee
+      const sourceChainId = 123;
+      const sourceContract = "0x1234567890123456789012345678901234567890";
+      const targetContract = wmbReceiver.address;
+      const messageData = "0x12345678";
+      const gasLimit = 200000;
+      const nonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+
+      await wmbReceiver.setTrustedRemotes([sourceChainId], [targetContract], [true]);
 
       // Create message ID and signature
       const messageId = ethers.utils.solidityKeccak256(
@@ -130,44 +210,86 @@ describe("WmbGateway", function () {
       );
 
       ret = await ret.wait();
+      expect(ret.events.some(e => e.event === 'MessageStored')).to.be.true;
+
+      let have = await wmbGateway.hasStoredFailedMessage(sourceChainId, sourceContract, targetContract);
+      expect(have).to.be.true;
 
       // Verify that nonce is incremented
       const newNonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
       expect(newNonce).to.equal(nonce + 1);
+    });
+  });
+
+  describe("retryFailedMessage", function () {
+    it("should retry a failed message", async function () {
+      // Deploy dummy WmbReceiver contract
+      const WmbReceiver = await ethers.getContractFactory("MockApp");
+      const wmbReceiver = await WmbReceiver.deploy(
+        accounts[0],
+        wmbGateway.address,
+        true,
+      );
+      await wmbReceiver.deployed();
+
+      // Get nonce and fee
+      const sourceChainId = 123;
+      const sourceContract = "0x1234567890123456789012345678901234567890";
+      const targetContract = wmbReceiver.address;
+      const messageData = "0x12345678";
+      const gasLimit = 1_000_000;
+      const nonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+
+      await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
+
+      // Create message ID and signature
+      const messageId = ethers.utils.solidityKeccak256(
+          ["uint256", "address", "uint256", "address", "bytes", "uint256"],
+          [sourceChainId, sourceContract, chainId, targetContract, messageData, nonce + 1]
+      );
+      
+      const sigData = {
+          messageId,
+          smgID: "0x1234567890123456789012345678901234567890123456789012345678901234",
+          r: "0x1234567812345678123456781234567812345678123456781234567812345678",
+          s: "0x1234567812345678123456781234567812345678123456781234567812345678",
+      };
+
+      // Receive message in WmbGateway contract
+      let ret = await wmbGateway.receiveMessage(
+          sourceChainId,
+          sourceContract,
+          targetContract,
+          messageData,
+          nonce + 1,
+          gasLimit,
+          sigData.smgID,
+          sigData.r,
+          sigData.s,
+          { gasLimit: gasLimit + 150_000 }
+      );
+
+      ret = await ret.wait();
+      expect(ret.events.some(e => e.event === 'MessageStored')).to.be.true;
+      
+      let have = await wmbGateway.hasStoredFailedMessage(sourceChainId, sourceContract, targetContract);
+      expect(have).to.be.true;
+
+      // Verify that nonce is incremented
+      const newNonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+      expect(newNonce).to.equal(nonce + 1);
+
+      // Retry message
+      ret = await wmbGateway.retryFailedMessage(sourceChainId, sourceContract, targetContract, messageData, { gasLimit: 5_000_000 });
+      ret = await ret.wait();
+
+      expect(ret.events.some(e => e.event === 'MessageCleared')).to.be.true;
 
       // Verify that message was delivered to the WmbReceiver contract
       const receivedMessage = await wmbReceiver.receivedMessages(messageId);
       expect(receivedMessage.data).to.equal(messageData);
       expect(receivedMessage.fromChainId).to.equal(sourceChainId);
       expect(receivedMessage.from).to.equal(sourceContract);
-    });
-  });
-
-  describe("estimateFee", function () {
-    it("should estimate the correct fee", async function () {
-      const targetChainId = 123;
-      const gasLimit = 200000;
-
-      // Then, set the base fee and check that the fee is updated accordingly
-      const newBaseFee = 10;
-      await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
-
-      const newFee = await wmbGateway.estimateFee(targetChainId, gasLimit);
-      const expectedNewFee = newBaseFee * gasLimit;
-
-      expect(newFee).to.equal(expectedNewFee);
-    });
-  });
-
-  describe("hasStoredFailedMessage", function () {
-    it("should check if a failed message is stored", async function () {
-      // TODO: Test hasStoredFailedMessage functionality
-    });
-  });
-
-  describe("retryFailedMessage", function () {
-    it("should retry a failed message", async function () {
-      // TODO: Test retryFailedMessage functionality
     });
   });
 

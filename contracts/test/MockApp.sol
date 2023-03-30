@@ -18,6 +18,16 @@ contract MockApp is WmbApp {
         initialize(admin, _wmbGateway, _blockMode);
     }
 
+    function burnGas() public pure {
+        uint256 a;
+        for (uint256 i = 0; i < 2000; i++) {
+            a = i * i;
+        }
+        for (uint256 i = 0; i < 2000; i++) {
+            a = i + i;
+        }
+    }
+
     function _wmbReceive(
         bytes calldata data,
         bytes32 messageId,
@@ -25,5 +35,6 @@ contract MockApp is WmbApp {
         address from
     ) internal override {
         receivedMessages[messageId] = MessageData(messageId, data, fromChainId, from);
+        burnGas();
     }
 }
