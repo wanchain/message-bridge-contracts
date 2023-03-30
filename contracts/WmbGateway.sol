@@ -230,13 +230,13 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     }
 
     // Checks if a failed message is stored
-    function hasStoredFailedMessage(uint16 _srcChainId, address _srcAddress, address _targetContract) external view returns (bool) {
+    function hasStoredFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract) external view returns (bool) {
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
         return sm.messageHash != bytes32(0);
     }
 
     // Retries a failed message
-    function retryFailedMessage(uint16 _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external {
+    function retryFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external {
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
         require(sm.messageHash != bytes32(0), "WmbGateway: No failed message stored");
         require(sm.messageLength == messageData.length, "WmbGateway: Invalid message length");
@@ -261,7 +261,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     }
 
     // Forces resumption of a failed message's receipt
-    function forceResumeReceive(uint16 _srcChainId, address _srcAddress) external {
+    function forceResumeReceive(uint _srcChainId, address _srcAddress) external {
         // only the target contract could call resume function.
         address _targetContract = msg.sender;
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];

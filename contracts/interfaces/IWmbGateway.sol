@@ -91,7 +91,7 @@ interface IWmbGateway {
      * 
      * When a failed message is detected, it will block all subsequent messages and prevent them from being processed. To continue processing messages, it is necessary to manually retry the failed message or force its resumption.
      */
-    function hasStoredFailedMessage(uint16 _srcChainId, address _srcAddress, address _targetContract) external view returns (bool);
+    function hasStoredFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract) external view returns (bool);
 
     /**
      * @dev Retries a failed message
@@ -100,12 +100,12 @@ interface IWmbGateway {
      * @param _targetContract Address of the target contract
      * @param messageData Data to send in the retry message
      */
-    function retryFailedMessage(uint16 _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external;
+    function retryFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external;
 
     /**
      * @dev Forces resumption of a failed message's receipt, Only when the _targetContract needs to resume the message flow in blocking mode and clear the stored message
      * @param _srcChainId ID of the source chain
      * @param _srcAddress Address of the source contract
      */
-    function forceResumeReceive(uint16 _srcChainId, address _srcAddress) external;
+    function forceResumeReceive(uint _srcChainId, address _srcAddress) external;
 }
