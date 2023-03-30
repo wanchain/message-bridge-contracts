@@ -299,6 +299,11 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         maxMessageLength = _maxMessageLength;
     }
 
+    function withdrawFee(address payable _to) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
+        _to.transfer(address(this).balance);
+    }
+
     /**
      * @dev Functions to adapt the EIP-5164 interface.
      */
