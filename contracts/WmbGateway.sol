@@ -132,6 +132,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         uint256 gasLimit
     ) public payable nonReentrant returns (bytes32 messageId) {
         uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
+        require(gasLimit >= minGasLimit, "WmbGateway: Gas limit too low");
         uint256 fee = estimateFee(targetChainId, gasLimit);
         require(msg.value >= fee, "WmbGateway: Insufficient fee");
         if (msg.value > fee) {
