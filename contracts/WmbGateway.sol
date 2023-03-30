@@ -261,7 +261,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     }
 
     // Forces resumption of a failed message's receipt
-    function forceResumeReceive(uint16 _srcChainId, address _srcAddress, bytes32 _messageId) external {
+    function forceResumeReceive(uint16 _srcChainId, address _srcAddress) external {
         // only the target contract could call resume function.
         address _targetContract = msg.sender;
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
@@ -269,7 +269,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
         delete storedMessages[_srcChainId][_srcAddress][_targetContract];
         
-        emit MessageResumeReceive(_srcChainId, _srcAddress, _targetContract, _messageId);
+        emit MessageResumeReceive(_srcChainId, _srcAddress, _targetContract, sm.messageId);
     }
 
     /**
