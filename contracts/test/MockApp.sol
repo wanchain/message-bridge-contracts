@@ -4,10 +4,15 @@ pragma solidity 0.8.18;
 import "../WmbApp.sol";
 
 contract MockApp is WmbApp {
-    bytes32 public receivedMessageId;
-    bytes public receivedMessageData;
-    uint256 public receivedFromChainId;
-    address public receivedFrom;
+    
+    struct MessageData {
+        bytes32 messageId;
+        bytes data;
+        uint256 fromChainId;
+        address from;
+    }
+
+    mapping(bytes32 => MessageData) public receivedMessages;
 
     constructor(address admin, address _wmbGateway, bool _blockMode) WmbApp() {
         initialize(admin, _wmbGateway, _blockMode);
@@ -19,9 +24,6 @@ contract MockApp is WmbApp {
         uint256 fromChainId,
         address from
     ) internal override {
-        receivedMessageId = messageId;
-        receivedMessageData = data;
-        receivedFromChainId = fromChainId;
-        receivedFrom = from;
+        receivedMessages[messageId] = MessageData(messageId, data, fromChainId, from);
     }
 }

@@ -1,6 +1,5 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const Web3 = require("web3");
 
 describe("WmbGateway", function () {
   let WmbGateway, wmbGateway, mockMPC, owner, addr1, addr2, chainId, accounts;
@@ -82,7 +81,65 @@ describe("WmbGateway", function () {
 
   describe("receiveMessage", function () {
     it("should receive a message", async function () {
-      // TODO: Test receiveMessage functionality
+      // Deploy dummy WmbReceiver contract
+      const WmbReceiver = await ethers.getContractFactory("MockApp");
+      const wmbReceiver = await WmbReceiver.deploy(
+        accounts[0],
+        wmbGateway.address,
+        true,
+      );
+      await wmbReceiver.deployed();
+
+
+
+      // Get nonce and fee
+      const sourceChainId = 123;
+      const sourceContract = "0x1234567890123456789012345678901234567890";
+      const targetContract = wmbReceiver.address;
+      const messageData = "0x12345678";
+      const gasLimit = 200000;
+      const nonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+
+      await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
+
+      // Create message ID and signature
+      const messageId = ethers.utils.solidityKeccak256(
+          ["uint256", "address", "uint256", "address", "bytes", "uint256"],
+          [sourceChainId, sourceContract, chainId, targetContract, messageData, nonce + 1]
+      );
+
+      const sigData = {
+          messageId,
+          smgID: "0x1234567890123456789012345678901234567890123456789012345678901234",
+          r: "0x1234567812345678123456781234567812345678123456781234567812345678",
+          s: "0x1234567812345678123456781234567812345678123456781234567812345678",
+      };
+
+      // Receive message in WmbGateway contract
+      let ret = await wmbGateway.receiveMessage(
+          sourceChainId,
+          sourceContract,
+          targetContract,
+          messageData,
+          nonce + 1,
+          gasLimit,
+          sigData.smgID,
+          sigData.r,
+          sigData.s,
+          { gasLimit: 500000 }
+      );
+
+      ret = await ret.wait();
+
+      // Verify that nonce is incremented
+      const newNonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+      expect(newNonce).to.equal(nonce + 1);
+
+      // Verify that message was delivered to the WmbReceiver contract
+      const receivedMessage = await wmbReceiver.receivedMessages(messageId);
+      expect(receivedMessage.data).to.equal(messageData);
+      expect(receivedMessage.fromChainId).to.equal(sourceChainId);
+      expect(receivedMessage.from).to.equal(sourceContract);
     });
   });
 
