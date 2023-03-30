@@ -145,19 +145,17 @@ describe("WmbGateway", function () {
 
   describe("estimateFee", function () {
     it("should estimate the correct fee", async function () {
-      // TODO: Test estimateFee functionality
-    });
-  });
+      const targetChainId = 123;
+      const gasLimit = 200000;
 
-  describe("getNonce", function () {
-    it("should return the correct nonce", async function () {
-      // TODO: Test getNonce functionality
-    });
-  });
+      // Then, set the base fee and check that the fee is updated accordingly
+      const newBaseFee = 10;
+      await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
 
-  describe("getChainId", function () {
-    it("should return the correct chain ID", async function () {
-      // TODO: Test getChainId functionality
+      const newFee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+      const expectedNewFee = newBaseFee * gasLimit;
+
+      expect(newFee).to.equal(expectedNewFee);
     });
   });
 
