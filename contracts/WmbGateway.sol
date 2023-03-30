@@ -26,6 +26,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
     // Global maximum gas limit for a message
     uint256 public maxGasLimit;
+    uint256 public minGasLimit;
     uint256 public defaultGasLimit;
 
     uint256 public maxMessageLength;
@@ -112,6 +113,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         _setupRole(DEFAULT_ADMIN_ROLE, admin);
         chainId = _chainId;
         maxGasLimit = 8_000_000;
+        minGasLimit = 100_000;
         defaultGasLimit = 2_000_000;
         maxMessageLength = 10_000;
         signatureVerifier = _signatureVerifier;
@@ -288,9 +290,10 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         signatureVerifier = _signatureVerifier;
     }
 
-    function setGasLimit(uint256 _maxGasLimit, uint256 _defaultGasLimit) external {
+    function setGasLimit(uint256 _maxGasLimit, uint256 _minGasLimit, uint256 _defaultGasLimit) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         maxGasLimit = _maxGasLimit;
+        minGasLimit = _minGasLimit;
         defaultGasLimit = _defaultGasLimit;
     }
 
