@@ -155,5 +155,12 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         emit RetryMessageSuccess(fromChainId, from, messageId, messageHash);
     }
 
-
+    // batch set trustedRemotes
+    function setTrustedRemotes(uint[] calldata fromChainIds, address[] calldata froms, bool[] calldata trusted) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbApp: must have admin role to set trusted remotes");
+        require(fromChainIds.length == froms.length && froms.length == trusted.length, "WmbApp: invalid input");
+        for (uint i = 0; i < fromChainIds.length; i++) {
+            trustedRemotes[fromChainIds[i]][froms[i]] = trusted[i];
+        }
+    }
 }
