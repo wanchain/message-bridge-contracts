@@ -106,6 +106,7 @@ interface IWmbGateway {
      * @dev Forces resumption of a failed message's receipt, Only when the _targetContract needs to resume the message flow in blocking mode and clear the stored message
      * @param _srcChainId ID of the source chain
      * @param _srcAddress Address of the source contract
+     * @param _messageId The unique identifier of the message
      */
-    function forceResumeReceive(uint16 _srcChainId, address _srcAddress) external;
+    function forceResumeReceive(uint16 _srcChainId, address _srcAddress, bytes32 _messageId) external;
 }

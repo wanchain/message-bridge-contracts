@@ -63,6 +63,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     struct StoredMessage {
         uint256 messageLength;
         bytes32 messageHash;
+        bytes32 messageId;
     }
 
     // Status of a Storeman Group
@@ -86,6 +87,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         bytes messageData,
         uint256 nonce,
         uint256 gasLimit,
+        bytes32 messageId,
         bytes reason
     );
 
@@ -93,13 +95,15 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         uint256 indexed sourceChainId,
         address indexed sourceContract,
         address indexed targetContract,
-        uint256 nonce
+        uint256 nonce,
+        bytes32 messageId
     );
 
     event MessageResumeReceive(
         uint256 indexed sourceChainId,
         address indexed sourceContract,
-        address indexed targetContract
+        address indexed targetContract,
+        bytes32 messageId
     );
     
 
@@ -250,11 +254,11 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
         IWmbReceiver(_targetContract).wmbReceive(messageData, messageId, _srcChainId, _srcAddress);
 
-        emit MessageCleared(_srcChainId, _srcAddress, _targetContract, nonce);
+        emit MessageCleared(_srcChainId, _srcAddress, _targetContract, nonce, messageId);
     }
 
     // Forces resumption of a failed message's receipt
-    function forceResumeReceive(uint16 _srcChainId, address _srcAddress) external {
+    function forceResumeReceive(uint16 _srcChainId, address _srcAddress, bytes32 _messageId) external {
         // only the target contract could call resume function.
         address _targetContract = msg.sender;
         StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
@@ -262,7 +266,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
         delete storedMessages[_srcChainId][_srcAddress][_targetContract];
         
-        emit MessageResumeReceive(_srcChainId, _srcAddress, _targetContract);
+        emit MessageResumeReceive(_srcChainId, _srcAddress, _targetContract, _messageId);
     }
 
     /**
@@ -378,8 +382,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
             emit MessageIdExecuted(data.sourceChainId, messageId);
         } catch (bytes memory reason) {
             // revert nonce if any uncaught errors/exceptions if the ua chooses the blocking mode
-            storedMessages[data.sourceChainId][data.sourceContract][data.targetContract] = StoredMessage(uint64(data.messageData.length), keccak256(data.messageData));
-            emit MessageStored(data.sourceChainId, data.sourceContract, data.targetContract, data.messageData, data.nonce, data.gasLimit, reason);
+            storedMessages[data.sourceChainId][data.sourceContract][data.targetContract] = StoredMessage(uint64(data.messageData.length), keccak256(data.messageData), messageId);
+            emit MessageStored(data.sourceChainId, data.sourceContract, data.targetContract, data.messageData, data.nonce, data.gasLimit, messageId, reason);
         }
     }
 }
