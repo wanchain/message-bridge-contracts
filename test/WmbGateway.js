@@ -19,7 +19,7 @@ describe("WmbGateway", function () {
       mockMPC.address,
       mockMPC.address,
     );
-    chainId = await wmbGateway.chainId();
+    chainId = await wmbGateway.getChainId();
   });
 
   describe("Deployment", function () {
@@ -216,7 +216,7 @@ describe("WmbGateway", function () {
       expect(have).to.be.true;
 
       // Verify that nonce is incremented
-      const newNonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+      const newNonce = await wmbGateway.getNonce(sourceChainId, chainId, sourceContract, targetContract);
       expect(newNonce).to.equal(nonce + 1);
     });
   });
