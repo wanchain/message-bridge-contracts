@@ -247,7 +247,7 @@ describe("WmbGateway", function () {
           ["uint256", "address", "uint256", "address", "bytes", "uint256"],
           [sourceChainId, sourceContract, chainId, targetContract, messageData, nonce + 1]
       );
-      
+
       const sigData = {
           messageId,
           smgID: "0x1234567890123456789012345678901234567890123456789012345678901234",
@@ -295,47 +295,185 @@ describe("WmbGateway", function () {
 
   describe("forceResumeReceive", function () {
     it("should force resumption of a failed message's receipt", async function () {
-      // TODO: Test forceResumeReceive functionality
+      // Deploy dummy WmbReceiver contract
+      const WmbReceiver = await ethers.getContractFactory("MockApp");
+      const wmbReceiver = await WmbReceiver.deploy(
+        accounts[0],
+        wmbGateway.address,
+        true,
+      );
+      await wmbReceiver.deployed();
+
+      // Get nonce and fee
+      const sourceChainId = 123;
+      const sourceContract = "0x1234567890123456789012345678901234567890";
+      const targetContract = wmbReceiver.address;
+      const messageData = "0x12345678";
+      const gasLimit = 1_000_000;
+      const nonce = await wmbGateway.nonces(sourceChainId, chainId, sourceContract, targetContract);
+
+      await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
+
+      // Create message ID and signature
+      const messageId = ethers.utils.solidityKeccak256(
+          ["uint256", "address", "uint256", "address", "bytes", "uint256"],
+          [sourceChainId, sourceContract, chainId, targetContract, messageData, nonce + 1]
+      );
+      
+      const sigData = {
+          messageId,
+          smgID: "0x1234567890123456789012345678901234567890123456789012345678901234",
+          r: "0x1234567812345678123456781234567812345678123456781234567812345678",
+          s: "0x1234567812345678123456781234567812345678123456781234567812345678",
+      };
+
+      // Receive message in WmbGateway contract
+      let ret = await wmbGateway.receiveMessage(
+          sourceChainId,
+          sourceContract,
+          targetContract,
+          messageData,
+          nonce + 1,
+          gasLimit,
+          sigData.smgID,
+          sigData.r,
+          sigData.s,
+          { gasLimit: gasLimit + 150_000 }
+      );
+
+      ret = await ret.wait();
+      expect(ret.events.some(e => e.event === 'MessageStored')).to.be.true;
+      
+      let have = await wmbGateway.hasStoredFailedMessage(sourceChainId, sourceContract, targetContract);
+      expect(have).to.be.true;
+
+      ret = await wmbReceiver.forceResumeReceive(
+        sourceChainId,
+        sourceContract,
+      );
+
+      ret = await ret.wait();
+      const interface = new ethers.utils.Interface(WmbGateway.interface.fragments);
+      const decodedEvent = interface.parseLog(ret.events[0]);
+      expect(decodedEvent.name === 'MessageResumeReceive').to.be.true;
     });
   });
 
   describe("Admin Functions", function () {
     describe("batchSetBaseFees", function () {
       it("should set base fees", async function () {
-        // TODO: Test batchSetBaseFees functionality
+        const targetChainIds = [1, 2, 3];
+        const baseFees = [100, 200, 300];
+    
+        await wmbGateway.batchSetBaseFees(targetChainIds, baseFees);
+    
+        for (let i = 0; i < targetChainIds.length; i++) {
+          const targetChainId = targetChainIds[i];
+          const expectedBaseFee = baseFees[i];
+          const actualBaseFee = await wmbGateway.baseFees(targetChainId);
+          expect(actualBaseFee).to.equal(expectedBaseFee, `Failed to set base fee for target chain ID ${targetChainId}`);
+        }
       });
     });
-
+    
     describe("setSignatureVerifier", function () {
       it("should set the signature verifier", async function () {
-        // TODO: Test setSignatureVerifier functionality
+        const signatureVerifier = accounts[1];
+    
+        await wmbGateway.setSignatureVerifier(signatureVerifier);
+    
+        const actualSignatureVerifier = await wmbGateway.signatureVerifier();
+        expect(actualSignatureVerifier).to.equal(signatureVerifier, "Failed to set signature verifier");
       });
     });
-
+    
     describe("setGasLimit", function () {
       it("should set the gas limit", async function () {
-        // TODO: Test setGasLimit functionality
+        const maxGasLimit = 1000000;
+        const minGasLimit = 1000;
+        const defaultGasLimit = 50000;
+    
+        await wmbGateway.setGasLimit(maxGasLimit, minGasLimit, defaultGasLimit);
+    
+        const actualMaxGasLimit = await wmbGateway.maxGasLimit();
+        expect(actualMaxGasLimit).to.equal(maxGasLimit, "Failed to set max gas limit");
+    
+        const actualMinGasLimit = await wmbGateway.minGasLimit();
+        expect(actualMinGasLimit).to.equal(minGasLimit, "Failed to set min gas limit");
+    
+        const actualDefaultGasLimit = await wmbGateway.defaultGasLimit();
+        expect(actualDefaultGasLimit).to.equal(defaultGasLimit, "Failed to set default gas limit");
       });
     });
-
+    
     describe("setMaxMessageLength", function () {
       it("should set the max message length", async function () {
-        // TODO: Test setMaxMessageLength functionality
+        const maxMessageLength = 1024;
+    
+        await wmbGateway.setMaxMessageLength(maxMessageLength);
+    
+        const actualMaxMessageLength = await wmbGateway.maxMessageLength();
+        expect(actualMaxMessageLength).to.equal(maxMessageLength, "Failed to set max message length");
       });
     });
+    
+    describe("withdrawFee", function () {
+      it("should withdraw fee", async function () {
+    
+        const targetChainId = 123;
+        const targetContract = "0x1234567890123456789012345678901234567890";
+        const messageData = "0x12345678";
+        const gasLimit = 200000;
+        const newBaseFee = 10000000000;
+        await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
+    
+        const fee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+        const value = fee;
+      
+        await wmbGateway.sendMessage(targetChainId, targetContract, messageData, gasLimit, {from: accounts[0], value: value});
+    
+        
+        const recipient = accounts[1];
+    
+        const balanceBefore = await ethers.provider.getBalance(recipient);
+    
+        await wmbGateway.withdrawFee(recipient);
+    
+        const balanceAfter = await ethers.provider.getBalance(recipient);
+    
+        expect(balanceAfter).to.equal(balanceBefore.add(fee), "Failed to withdraw fee");
+      });
+    });
+    
   });
 
   describe("EIP-5164 Functions", function () {
     describe("dispatchMessage", function () {
       it("should dispatch a message", async function () {
-        // TODO: Test dispatchMessage functionality
+        const targetChainId = 123;
+        const targetContract = "0x1234567890123456789012345678901234567890";
+        const messageData = "0x12345678";
+        const gasLimit = await wmbGateway.defaultGasLimit();
+        const newBaseFee = 10000000000;
+        await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
+        const fee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+        const value = fee;
+        const balanceBefore = await ethers.provider.getBalance(wmbGateway.address);
+        
+        const tx = await wmbGateway.dispatchMessage(targetChainId, targetContract, messageData, {value: value});
+        await tx.wait();
+    
+        const balanceAfter = await ethers.provider.getBalance(wmbGateway.address);
+        
+        expect(balanceAfter).to.equal(balanceBefore.add(value), "Failed to dispatch message");
       });
     });
-
+    
     describe("dispatchMessageBatch", function () {
       it("should revert", async function () {
-        // TODO: Test dispatchMessageBatch functionality
+        await expect(wmbGateway.dispatchMessageBatch(0, [])).to.be.revertedWith("WmbGateway: Batch is not supported");
       });
     });
+    
   });
 });

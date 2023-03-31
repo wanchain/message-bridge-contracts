@@ -37,4 +37,11 @@ contract MockApp is WmbApp {
         receivedMessages[messageId] = MessageData(messageId, data, fromChainId, from);
         burnGas();
     }
+
+    function forceResumeReceive(
+        uint256 fromChainId,
+        address from
+    ) public {
+        IWmbGateway(wmbGateway).forceResumeReceive(fromChainId, from);
+    }
 }
