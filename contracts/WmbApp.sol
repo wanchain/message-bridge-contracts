@@ -77,7 +77,8 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         if (blockMode) {
             _wmbReceive(data, messageId, fromChainId, from);
         } else {
-            (bool success, bytes memory reason) = address(this).excessivelySafeCall(gasleft(), 150, abi.encodeWithSelector(this.nonblockingWmbReceive.selector, data, messageId, fromChainId, from));
+            uint reserveGasForFailedMessageStore = 35_000;
+            (bool success, bytes memory reason) = address(this).excessivelySafeCall(gasleft() - reserveGasForFailedMessageStore, 150, abi.encodeWithSelector(this.nonblockingWmbReceive.selector, data, messageId, fromChainId, from));
             // try-catch all errors/exceptions
             if (!success) {
                 _storeFailedMessage(data, messageId, fromChainId, from, reason);
