@@ -470,10 +470,33 @@ describe("WmbGateway", function () {
     });
     
     describe("dispatchMessageBatch", function () {
-      it("should revert", async function () {
-        await expect(wmbGateway.dispatchMessageBatch(0, [])).to.be.revertedWith("WmbGateway: Batch is not supported");
+      it("should dispatch a batch of messages", async function () {
+        const targetChainId = 123;
+        const targetContract1 = "0x1234567890123456789012345678901234567890";
+        const targetContract2 = "0x0987654321098765432109876543210987654321";
+        const messageData1 = "0x12345678";
+        const messageData2 = "0x87654321";
+        const gasLimit = await wmbGateway.defaultGasLimit();
+        const newBaseFee = 10000000000;
+        await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
+        const fee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+        const value = fee.mul(2); // Since we are sending two messages in the batch
+        const balanceBefore = await ethers.provider.getBalance(wmbGateway.address);
+    
+        const messages = [
+          {to: targetContract1, data: messageData1},
+          {to: targetContract2, data: messageData2}
+        ];
+    
+        let tx = await wmbGateway.dispatchMessageBatch(targetChainId, messages, {value: value});
+        tx = await tx.wait();
+
+        const balanceAfter = await ethers.provider.getBalance(wmbGateway.address);
+    
+        expect(balanceAfter).to.equal(balanceBefore.add(value), "Failed to dispatch message batch");
       });
     });
+    
     
   });
 });
