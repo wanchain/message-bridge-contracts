@@ -98,5 +98,30 @@ describe("WmbApp", function () {
     expect(receivedMessage.from).to.equal(sourceContract);
   });
 
+  // send message from a dapp smart contract
+  it("send message from a dapp smart contract", async function () {
+    const WmbSender = await ethers.getContractFactory("MockApp");
+    const wmbSender = await WmbSender.deploy(
+      accounts[0],
+      wmbGateway.address,
+      false,
+    );
+    await wmbSender.deployed();
+
+    let ret = await wmbSender.send(
+      chainId,
+      accounts[1],
+      '0x12345678',
+      1_000_000
+    );
+    ret = await ret.wait();
+    const interface = new ethers.utils.Interface(WmbGateway.interface.fragments);
+    const decodedEvent = interface.parseLog(ret.events[0]);
+    expect(decodedEvent.name).to.equal('MessageSent');
+
+    let messageId = await wmbSender.sentMessages(0);
+    expect(messageId).to.equal(decodedEvent.args.messageId);
+
+  });
 });
 

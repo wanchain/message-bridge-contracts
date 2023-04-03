@@ -13,6 +13,8 @@ contract MockApp is WmbApp {
     }
 
     mapping(bytes32 => MessageData) public receivedMessages;
+    mapping(uint => bytes32) public sentMessages;
+    uint public sentCount;
 
     constructor(address admin, address _wmbGateway, bool _blockMode) WmbApp() {
         initialize(admin, _wmbGateway, _blockMode);
@@ -43,5 +45,16 @@ contract MockApp is WmbApp {
         address from
     ) public {
         IWmbGateway(wmbGateway).forceResumeReceive(fromChainId, from);
+    }
+
+    function send(
+        uint256 toChainId,
+        address to,
+        bytes calldata data,
+        uint256 gasLimit
+    ) public {
+        bytes32 messageId = IWmbGateway(wmbGateway).sendMessage(toChainId, to, data, gasLimit);
+        sentMessages[sentCount] = messageId;
+        sentCount++;
     }
 }
