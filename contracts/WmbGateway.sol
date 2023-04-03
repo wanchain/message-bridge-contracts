@@ -289,20 +289,18 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
      * @dev Functions to adapt the EIP-5164 interface.
      */
 
-    function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable returns (bytes32 messageId) {
-        messageId = sendMessage(toChainId, to, data, defaultGasLimit);
+    function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
+        messageId = _sendMessage(toChainId, to, data, defaultGasLimit, msg.value);
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
     }
 
-    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable returns (bytes32 messageId) {
-        uint fee;
-        uint totalFee;
-        for (uint256 i = 0; i < messages.length; i++) {
-            fee = estimateFee(toChainId, defaultGasLimit);
-            totalFee += fee;
+    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
+        uint fee = estimateFee(toChainId, defaultGasLimit);
+        uint length = messages.length;
+        for (uint256 i = 0; i < length; i++) {
             messageId = _sendMessage(toChainId, messages[i].to, messages[i].data, defaultGasLimit, fee);
         }
-        require(msg.value >= totalFee, "WmbGateway: Insufficient fee");
+        require(msg.value >= (fee * length), "WmbGateway: Insufficient fee");
         emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
     }
 
