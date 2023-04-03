@@ -1,7 +1,7 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("WmbGateway", function () {
+describe("WmbApp", function () {
   let WmbGateway, wmbGateway, mockMPC, owner, addr1, addr2, chainId, accounts, wmbReceiver, WmbReceiver;
 
   beforeEach(async function () {
