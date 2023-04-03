@@ -313,7 +313,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
      */
 
     function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable returns (bytes32 messageId) {
-        return sendMessage(toChainId, to, data, defaultGasLimit);
+        messageId = sendMessage(toChainId, to, data, defaultGasLimit);
+        emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
     }
 
     function dispatchMessageBatch(uint256 /*toChainId*/, Message[] calldata /*messages*/) external payable returns (bytes32 /*messageId*/) {
