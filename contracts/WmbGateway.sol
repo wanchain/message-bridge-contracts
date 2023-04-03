@@ -131,35 +131,12 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         bytes calldata messageData,
         uint256 gasLimit
     ) public payable nonReentrant returns (bytes32 messageId) {
-        uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
-        uint256 fee = estimateFee(targetChainId, gasLimit);
-        require(msg.value >= fee, "WmbGateway: Insufficient fee");
-        if (msg.value > fee) {
-            Address.sendValue(payable(msg.sender), msg.value - fee);
-        }
-
-        require(messageData.length <= maxMessageLength, "WmbGateway: Message too long");
-
-        messageId = keccak256(
-            abi.encodePacked(
-                chainId,
-                msg.sender,
-                targetChainId,
-                targetContract,
-                messageData,
-                nonce
-            )
-        );
-
-        emit MessageSent(
-            msg.sender,
+        return _sendMessage(
             targetChainId,
             targetContract,
-            chainId,
             messageData,
-            nonce,
             gasLimit,
-            messageId
+            msg.value
         );
     }
 
@@ -317,8 +294,16 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
     }
 
-    function dispatchMessageBatch(uint256 /*toChainId*/, Message[] calldata /*messages*/) external payable returns (bytes32 /*messageId*/) {
-        revert("WmbGateway: Batch is not supported");
+    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable returns (bytes32 messageId) {
+        uint fee;
+        uint totalFee;
+        for (uint256 i = 0; i < messages.length; i++) {
+            fee = estimateFee(toChainId, defaultGasLimit);
+            totalFee += fee;
+            messageId = _sendMessage(toChainId, messages[i].to, messages[i].data, defaultGasLimit, fee);
+        }
+        require(msg.value >= totalFee, "WmbGateway: Insufficient fee");
+        emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
     }
 
     /**
@@ -374,6 +359,45 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
         // Verify the signature using the Wanchain MPC contract
         require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.message), "WmbGateway: Signature verification failed");
+    }
+
+    function _sendMessage(
+        uint256 targetChainId,
+        address targetContract,
+        bytes calldata messageData,
+        uint256 gasLimit,
+        uint256 value
+    ) internal returns (bytes32 messageId) {
+        uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
+        uint256 fee = estimateFee(targetChainId, gasLimit);
+        require(value >= fee, "WmbGateway: Insufficient fee");
+        if (value > fee) {
+            Address.sendValue(payable(msg.sender), value - fee);
+        }
+
+        require(messageData.length <= maxMessageLength, "WmbGateway: Message too long");
+
+        messageId = keccak256(
+            abi.encodePacked(
+                chainId,
+                msg.sender,
+                targetChainId,
+                targetContract,
+                messageData,
+                nonce
+            )
+        );
+
+        emit MessageSent(
+            msg.sender,
+            targetChainId,
+            targetContract,
+            chainId,
+            messageData,
+            nonce,
+            gasLimit,
+            messageId
+        );
     }
 
     function _receiveMessage(
