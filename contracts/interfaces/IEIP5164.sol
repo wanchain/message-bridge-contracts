@@ -6,25 +6,28 @@ struct Message {
     bytes data;
 }
 
+// EIP-5164 defines a cross-chain execution interface for EVM-based blockchains. 
+// Implementations of this specification will allow contracts on one chain to call contracts on another by sending a cross-chain message.
+// https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5164.md
 interface IEIP5164 {
-
-    event MessageDispatched(
-        bytes32 indexed messageId,
-        address indexed from,
-        uint256 indexed toChainId,
-        address to,
-        bytes data
-    );
-
-    event MessageBatchDispatched(
-        bytes32 indexed messageId,
-        address indexed from,
-        uint256 indexed toChainId,
-        Message[] messages
-    );
-
+    
+    /**
+     * @notice Sends a message to a specified chain and address with the given data.
+     * @dev This function is used to dispatch a message to a specified chain and address with the given data.
+     * @param toChainId The chain ID of the destination chain.
+     * @param to The address of the destination contract on the destination chain.
+     * @param data The data to be sent to the destination contract.
+     * @return messageId A unique identifier for the dispatched message.
+     */ 
     function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable returns (bytes32 messageId);
 
+    /**
+     * @notice Sends a batch of messages to a specified chain.
+     * @dev This function is used to dispatch a batch of messages to a specified chain and returns a unique identifier for the dispatched batch.
+     * @param toChainId The chain ID of the destination chain.
+     * @param messages An array of Message struct objects containing the destination addresses and data to be sent to each destination contract.
+     * @return messageId A unique identifier for the dispatched batch.
+     */ 
     function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable returns (bytes32 messageId);
 
     /**
@@ -53,6 +56,21 @@ interface IEIP5164 {
         bytes32 messageId,
         uint256 messageIndex,
         bytes errorData
+    );
+
+    event MessageDispatched(
+        bytes32 indexed messageId,
+        address indexed from,
+        uint256 indexed toChainId,
+        address to,
+        bytes data
+    );
+
+    event MessageBatchDispatched(
+        bytes32 indexed messageId,
+        address indexed from,
+        uint256 indexed toChainId,
+        Message[] messages
     );
 
     event MessageIdExecuted(
