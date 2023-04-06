@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
+import "./IEIP5164.sol";
+
 /**
  * @title IWmbGateway
  * @dev Interface for the Wanchain Message Bridge Gateway contract
+ * @dev This interface is used to send and receive messages between chains
+ * @dev This interface is based on EIP-5164
+ * @dev It extends the EIP-5164 interface, adding a custom gasLimit feature.
  */
-interface IWmbGateway {
+interface IWmbGateway is IEIP5164 {
     /**
      * @dev Sends a message to a contract on another chain
      * @param targetChainId ID of the target chain
@@ -14,7 +19,7 @@ interface IWmbGateway {
      * @param gasLimit Gas limit for the message call
      * @return messageId The unique identifier of the message
      */
-    function sendMessage(
+    function sendCustomMessage(
         uint256 targetChainId,
         address targetContract,
         bytes calldata messageData,
@@ -23,11 +28,11 @@ interface IWmbGateway {
 
     /**
      * @dev Receives a message sent from another chain and verifies the signature of the sender.
+     * @param messageId Unique identifier of the message to prevent replay attacks
      * @param sourceChainId ID of the source chain
      * @param sourceContract Address of the source contract
      * @param targetContract Address of the target contract
      * @param messageData Data sent in the message
-     * @param nonce Nonce value to prevent replay attacks
      * @param gasLimit Gas limit for the message call
      * @param smgID ID of the Wanchain Storeman Group that signs the message
      * @param r R component of the SMG MPC signature
@@ -39,13 +44,38 @@ interface IWmbGateway {
      * The gas limit is used to limit the amount of gas that can be used for the message execution.
      */
     function receiveMessage(
+        bytes32 messageId,
         uint256 sourceChainId,
         address sourceContract,
         address targetContract,
         bytes calldata messageData,
-        uint256 nonce,
         uint256 gasLimit,
         bytes32 smgID, 
+        bytes calldata r, 
+        bytes32 s
+    ) external;
+
+    /**
+     * @dev Receives a message sent from another chain and verifies the signature of the sender.
+     * @param messageId Unique identifier of the message to prevent replay attacks
+     * @param sourceChainId ID of the source chain
+     * @param sourceContract Address of the source contract
+     * @param messages Data sent in the message
+     * @param smgID ID of the Wanchain Storeman Group that signs the message
+     * @param r R component of the SMG MPC signature
+     * @param s S component of the SMG MPC signature
+     * 
+     * This function receives a message sent from another chain and verifies the signature of the sender using the provided SMG ID and signature components (r and s). 
+     * If the signature is verified successfully, the message is executed on the target contract. 
+     * The nonce value is used to prevent replay attacks. 
+     * The gas limit is used to limit the amount of gas that can be used for the message execution.
+     */
+    function receiveBatchMessage(
+        bytes32 messageId,
+        uint256 sourceChainId,
+        address sourceContract,
+        Message[] calldata messages,
+        bytes32 smgID,
         bytes calldata r, 
         bytes32 s
     ) external;
@@ -83,29 +113,14 @@ interface IWmbGateway {
     ) external view returns (uint256);
 
     /**
-     * @dev Checks if a failed message is stored
-     * @param _srcChainId ID of the source chain
-     * @param _srcAddress Address of the source contract
-     * @param _targetContract Address of the target contract
-     * @return bool Whether a failed message is stored for the given contract and chain
-     * 
-     * When a failed message is detected, it will block all subsequent messages and prevent them from being processed. To continue processing messages, it is necessary to manually retry the failed message or force its resumption.
+     * @dev extend the EIP-5164 interface, adding a custom gasLimit feature.
      */
-    function hasStoredFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract) external view returns (bool);
-
-    /**
-     * @dev Retries a failed message
-     * @param _srcChainId ID of the source chain
-     * @param _srcAddress Address of the source contract
-     * @param _targetContract Address of the target contract
-     * @param messageData Data to send in the retry message
-     */
-    function retryFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external;
-
-    /**
-     * @dev Forces resumption of a failed message's receipt, Only when the _targetContract needs to resume the message flow in blocking mode and clear the stored message
-     * @param _srcChainId ID of the source chain
-     * @param _srcAddress Address of the source contract
-     */
-    function forceResumeReceive(uint _srcChainId, address _srcAddress) external;
+    event MessageDispatchedExtended(
+        bytes32 indexed messageId,
+        address indexed from,
+        uint256 indexed toChainId,
+        address to,
+        bytes data,
+        uint256 gasLimit
+    );
 }

@@ -26,4 +26,11 @@ interface IWmbConfig {
      * @param _maxMessageLength The maximum message length
      */
     function setMaxMessageLength(uint256 _maxMessageLength) external;
+
+    /**
+     * @dev Sets the supported destination chains
+     * @param targetChainIds An array of target chain IDs
+     * @param supported An array of supported values, corresponding to the target chain IDs
+     */
+    function setSupportedDstChains(uint256[] calldata targetChainIds, bool[] calldata supported) external;
 }

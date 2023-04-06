@@ -6,7 +6,6 @@ import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
 import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
-import "./interfaces/IEIP5164.sol";
 import "./interfaces/IWmbGateway.sol";
 import "./interfaces/IWmbConfig.sol";
 import "./interfaces/IWanchainMPC.sol";
@@ -20,7 +19,7 @@ import "./interfaces/IWmbReceiver.sol";
  *      In blocking mode, if a target contract call fails, the channel blocks until the issue is resolved.
  *      In non-blocking mode, failed transactions are recorded in the dapp contract and do not block subsequent transaction executions.
  */
-contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, IWmbGateway, IWmbConfig {
+contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGateway, IWmbConfig {
     // slip-0044 standands chainId for local chain
     uint256 public chainId;
 
@@ -37,75 +36,42 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
     // Address of the Wanchain Storeman Admin contract
     address public wanchainStoremanAdminSC;
 
+    // Mapping of message IDs to message execution status
+    mapping(bytes32 => bool) public messageExecuted;
+
     // Mapping of target chain IDs to base fees
     mapping(uint256 => uint256) public baseFees;
 
     // Mapping of sourceChainId->dstChainId->sourceContract->targetContract->nonce to prevent replay attacks
     mapping(uint256 => mapping(uint256 => mapping(address => mapping(address => uint256)))) public nonces;
 
-    mapping(uint256 => mapping(address => mapping(address => StoredMessage))) public storedMessages;
+    // Mapping of target chain IDs to supported status
+    mapping(uint256 => bool) public supportedDstChains;
 
     struct ReceiveMsgData {
         uint256 sourceChainId;
         address sourceContract;
         address targetContract;
         bytes messageData;
-        uint256 nonce;
+        uint256 gasLimit;
+    }
+
+    struct ReceiveBatchMsgData {
+        uint256 sourceChainId;
+        address sourceContract;
+        Message[] messages;
         uint256 gasLimit;
     }
 
     struct SigData {
-        bytes32 message;
+        bytes32 sigHash;
         bytes32 smgID; 
         bytes r;
         bytes32 s;
     }
 
-    struct StoredMessage {
-        uint256 messageLength;
-        bytes32 messageHash;
-        bytes32 messageId;
-    }
-
     // Status of a Storeman Group
     enum GroupStatus { none, initial, curveSeted, failed, selected, ready, unregistered, dismissed }
-
-    event MessageSent(
-        address indexed sourceContract,
-        uint indexed targetChainId,
-        address indexed targetContract,
-        uint sourceChainId,
-        bytes messageData,
-        uint256 nonce,
-        uint256 gasLimit,
-        bytes32 messageId
-    );
-
-    event MessageStored(
-        uint256 indexed sourceChainId,
-        address indexed sourceContract,
-        address indexed targetContract,
-        bytes messageData,
-        uint256 nonce,
-        uint256 gasLimit,
-        bytes32 messageId,
-        bytes reason
-    );
-
-    event MessageCleared(
-        uint256 indexed sourceChainId,
-        address indexed sourceContract,
-        address indexed targetContract,
-        uint256 nonce,
-        bytes32 messageId
-    );
-
-    event MessageResumeReceive(
-        uint256 indexed sourceChainId,
-        address indexed sourceContract,
-        address indexed targetContract,
-        bytes32 messageId
-    );
     
 
     function initialize(address admin, uint _chainId, address _signatureVerifier, address _wanchainStoremanAdminSC) public initializer {
@@ -124,45 +90,63 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
      * @dev Public interface functions for the WMB Gateway contract.
      */
 
-    // Sends a message to a contract on another chain
-    function sendMessage(
+    function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
+        messageId = _sendMessage(toChainId, to, data, defaultGasLimit, msg.value);
+        emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
+    }
+
+    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
+        uint fee = estimateFee(toChainId, defaultGasLimit);
+        uint length = messages.length;
+        for (uint256 i = 0; i < length; i++) {
+            bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data, defaultGasLimit, fee);
+            if (i == 0) {
+                messageId = subId;
+            } else {
+                messageId = keccak256(abi.encodePacked(messageId, subId));
+            }
+        }
+        
+        require(msg.value >= (fee * length), "WmbGateway: Insufficient fee");
+        emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
+    }
+
+    function sendCustomMessage(
         uint256 targetChainId,
         address targetContract,
         bytes calldata messageData,
         uint256 gasLimit
     ) public payable nonReentrant returns (bytes32 messageId) {
-        return _sendMessage(
+        messageId = _sendMessage(
             targetChainId,
             targetContract,
             messageData,
             gasLimit,
             msg.value
         );
+
+        emit MessageDispatchedExtended(
+            messageId,
+            msg.sender,
+            targetChainId,
+            targetContract,
+            messageData,
+            gasLimit
+        );
     }
 
     // Receives a message sent from another chain
     function receiveMessage(
+        bytes32 messageId,
         uint256 sourceChainId,
         address sourceContract,
         address targetContract,
         bytes calldata messageData,
-        uint256 nonce,
         uint256 gasLimit,
         bytes32 smgID, 
         bytes calldata r, 
         bytes32 s
     ) external {
-        bytes32 messageId = keccak256(
-            abi.encodePacked(
-                sourceChainId,
-                sourceContract,
-                chainId,
-                targetContract,
-                messageData,
-                nonce
-            )
-        );
-
         _receiveMessage(
             messageId,
             ReceiveMsgData(
@@ -170,15 +154,59 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
                 sourceContract,
                 targetContract,
                 messageData,
-                nonce,
                 gasLimit
             )
         );
 
+        bytes32 sigHash = keccak256(abi.encode(
+            messageId,
+            sourceChainId,
+            sourceContract,
+            chainId,
+            targetContract,
+            messageData
+        ));
+
         // verify signature
         verifyMpcSignature(
             SigData(
-                messageId, smgID, r, s
+                sigHash, smgID, r, s
+            )
+        );
+    }
+
+        // Receives a message sent from another chain
+    function receiveBatchMessage(
+        bytes32 messageId,
+        uint256 sourceChainId,
+        address sourceContract,
+        Message[] calldata messages,
+        bytes32 smgID,
+        bytes calldata r, 
+        bytes32 s
+    ) external {
+        _receiveBatchMessage(
+            messageId,
+            ReceiveBatchMsgData(
+                sourceChainId,
+                sourceContract,
+                messages,
+                defaultGasLimit
+            )
+        );
+
+        bytes32 sigHash = keccak256(abi.encode(
+            messageId,
+            sourceChainId,
+            sourceContract,
+            chainId,
+            messages
+        ));
+
+        // verify signature
+        verifyMpcSignature(
+            SigData(
+                sigHash, smgID, r, s
             )
         );
     }
@@ -204,49 +232,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
     function getChainId() public view returns (uint256) {
         return chainId;
-    }
-
-    // Checks if a failed message is stored
-    function hasStoredFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract) external view returns (bool) {
-        StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
-        return sm.messageHash != bytes32(0);
-    }
-
-    // Retries a failed message
-    function retryFailedMessage(uint _srcChainId, address _srcAddress, address _targetContract, bytes calldata messageData) external {
-        StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
-        require(sm.messageHash != bytes32(0), "WmbGateway: No failed message stored");
-        require(sm.messageLength == messageData.length, "WmbGateway: Invalid message length");
-        require(sm.messageHash == keccak256(messageData), "WmbGateway: Invalid message hash");
-        delete storedMessages[_srcChainId][_srcAddress][_targetContract];
-
-        uint nonce = nonces[_srcChainId][chainId][_srcAddress][_targetContract];
-        bytes32 messageId = keccak256(
-            abi.encodePacked(
-                _srcChainId,
-                _srcAddress,
-                chainId,
-                _targetContract,
-                messageData,
-                nonce
-            )
-        );
-
-        IWmbReceiver(_targetContract).wmbReceive(messageData, messageId, _srcChainId, _srcAddress);
-
-        emit MessageCleared(_srcChainId, _srcAddress, _targetContract, nonce, messageId);
-    }
-
-    // Forces resumption of a failed message's receipt
-    function forceResumeReceive(uint _srcChainId, address _srcAddress) external {
-        // only the target contract could call resume function.
-        address _targetContract = msg.sender;
-        StoredMessage storage sm = storedMessages[_srcChainId][_srcAddress][_targetContract];
-        require(sm.messageHash != bytes32(0), "WmbGateway: No failed message stored");
-
-        delete storedMessages[_srcChainId][_srcAddress][_targetContract];
-        
-        emit MessageResumeReceive(_srcChainId, _srcAddress, _targetContract, sm.messageId);
     }
 
     /**
@@ -285,24 +270,14 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         _to.transfer(address(this).balance);
     }
 
-    /**
-     * @dev Functions to adapt the EIP-5164 interface.
-     */
-
-    function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
-        messageId = _sendMessage(toChainId, to, data, defaultGasLimit, msg.value);
-        emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
-    }
-
-    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
-        uint fee = estimateFee(toChainId, defaultGasLimit);
-        uint length = messages.length;
-        for (uint256 i = 0; i < length; i++) {
-            messageId = _sendMessage(toChainId, messages[i].to, messages[i].data, defaultGasLimit, fee);
+    function setSupportedDstChains(uint256[] calldata targetChainIds, bool[] calldata supported) external {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
+        require(targetChainIds.length == supported.length, "WmbGateway: Invalid input");
+        for (uint256 i = 0; i < targetChainIds.length; i++) {
+            supportedDstChains[targetChainIds[i]] = supported[i];
         }
-        require(msg.value >= (fee * length), "WmbGateway: Insufficient fee");
-        emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
     }
+
 
     /**
      * @dev Internal Functions.
@@ -356,7 +331,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         bytes32 Ry = bytesToBytes32(sig.r, 32);
 
         // Verify the signature using the Wanchain MPC contract
-        require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.message), "WmbGateway: Signature verification failed");
+        require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.sigHash), "WmbGateway: Signature verification failed");
     }
 
     function _sendMessage(
@@ -366,6 +341,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
         uint256 gasLimit,
         uint256 value
     ) internal returns (bytes32 messageId) {
+        require(supportedDstChains[targetChainId], "WmbGateway: Unsupported destination chain");
         uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
         uint256 fee = estimateFee(targetChainId, gasLimit);
         require(value >= fee, "WmbGateway: Insufficient fee");
@@ -377,45 +353,57 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IEIP5164, 
 
         messageId = keccak256(
             abi.encodePacked(
-                chainId,
-                msg.sender,
-                targetChainId,
-                targetContract,
-                messageData,
-                nonce
-            )
-        );
-
-        emit MessageSent(
+            chainId,
             msg.sender,
             targetChainId,
             targetContract,
-            chainId,
             messageData,
-            nonce,
-            gasLimit,
-            messageId
-        );
+            nonce
+        ));
     }
 
     function _receiveMessage(
         bytes32 messageId,
         ReceiveMsgData memory data
     ) internal {
-        require(data.nonce == ++nonces[data.sourceChainId][chainId][data.sourceContract][data.targetContract], "WmbGateway: Invalid nonce");
-        require(Address.isContract(data.targetContract), "WmbGateway: Target address is not a contract");
-
-        // block if any message blocking
-        StoredMessage storage sm = storedMessages[data.sourceChainId][data.sourceContract][data.targetContract];
-        require(sm.messageHash == bytes32(0), "WmbGateway: The message is in blocking");
+        if(messageExecuted[messageId]) {
+            revert MessageIdAlreadyExecuted({messageId: messageId});
+        }
+        messageExecuted[messageId] = true;
         
         try IWmbReceiver(data.targetContract).wmbReceive{gas: data.gasLimit}(data.messageData, messageId, data.sourceChainId, data.sourceContract) {
-            // success, do nothing, end of the receive message function.
             emit MessageIdExecuted(data.sourceChainId, messageId);
         } catch (bytes memory reason) {
-            // revert nonce if any uncaught errors/exceptions if the ua chooses the blocking mode
-            storedMessages[data.sourceChainId][data.sourceContract][data.targetContract] = StoredMessage(uint64(data.messageData.length), keccak256(data.messageData), messageId);
-            emit MessageStored(data.sourceChainId, data.sourceContract, data.targetContract, data.messageData, data.nonce, data.gasLimit, messageId, reason);
+            revert MessageFailure({
+                messageId: messageId,
+                errorData: reason
+            });
         }
+    }
+
+    function _receiveBatchMessage(
+        bytes32 messageId,
+        ReceiveBatchMsgData memory data
+    ) internal {
+        if(messageExecuted[messageId]) {
+            revert MessageIdAlreadyExecuted({messageId: messageId});
+        }
+        messageExecuted[messageId] = true;
+        
+        uint length = data.messages.length;
+        uint i = 0;
+        for (i = 0; i < length; i++) {
+            try IWmbReceiver(data.messages[i].to).wmbReceive{gas: data.gasLimit}(data.messages[i].data, messageId, data.sourceChainId, data.sourceContract) {
+                // do nothing
+            } catch (bytes memory reason) {
+                revert MessageBatchFailure({
+                    messageId: messageId,
+                    messageIndex: i,
+                    errorData: reason
+                });
+            }
+        }
+        
+        emit MessageIdExecuted(data.sourceChainId, messageId);
     }
 }
