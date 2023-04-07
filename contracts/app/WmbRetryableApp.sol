@@ -1,34 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "./utils/ExcessivelySafeCall.sol";
-import "./interfaces/IWmbGateway.sol";
-import "./interfaces/IWmbReceiver.sol";
+import "../utils/ExcessivelySafeCall.sol";
+import "./WmbApp.sol";
 
 /**
- * @title WmbApp
- * @dev Abstract contract to be inherited by applications to use Wanchain Message Bridge for send and receive messages
+ * @title WmbRetryableApp
+ * @dev Abstract contract to be inherited by applications to use Wanchain Message Bridge for send and receive messages and support retry failed transactions
  */
-abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
+abstract contract WmbRetryableApp is WmbApp {
     // Import the ExcessivelySafeCall library for safe external function calls
     using ExcessivelySafeCall for address;
 
-    // The address of the WMB Gateway contract
-    address public wmbGateway;
-
-    // A boolean flag indicating whether the block mode is enabled
-    bool public blockMode;
-
-    // A mapping of remote chains and addresses that are trusted to send messages to this contract
-    // fromChainId => fromAddress => trusted
-    mapping (uint => mapping(address => bool)) public trustedRemotes;
+    // this is the gas reserve for storing the failed message data hash
+    // so that we can retry it later
+    // this is a constant value that is used in the wmbReceive function
+    // and should be updated if the wmbReceive function is updated.
+    uint256 public constant RESERVE_GAS_FOR_FAILED_MESSAGE_STORE = 50_000;
 
     // A mapping of failed messages by their chain ID, address, and message ID, with the value being the message hash
     // This is used to keep track of failed messages in order to retry them later
     // fromChainId => fromAddress => messageId => messageHash
-    mapping (uint => mapping(address => mapping(bytes32 => bytes32))) public failedMessages;
+    mapping(bytes32 => bytes32) public failedMessages;
 
     event MessageFailed(
         bytes32 indexed messageId,
@@ -46,19 +39,6 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
     );
 
     /**
-     * @dev Initializes the contract with the given admin, WMB Gateway address, and block mode flag
-     * @param admin Address of the contract admin
-     * @param _wmbGateway Address of the WMB Gateway contract
-     * @param _blockMode Whether to use block mode or non-block mode on WMB message execution failure
-     */
-    function initialize(address admin, address _wmbGateway, bool _blockMode) public initializer {
-        // Initialize the AccessControl module with the given admin
-        _setupRole(DEFAULT_ADMIN_ROLE, admin);
-        wmbGateway = _wmbGateway;
-        blockMode = _blockMode;
-    }
-
-    /**
      * @dev Function to receive a WMB message from the WMB Gateway
      * @param data Message data
      * @param messageId Message ID
@@ -70,19 +50,15 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         bytes32 messageId,
         uint256 fromChainId,
         address from
-    ) external {
+    ) override external {
         // Only the WMB gateway can call this function
         require(msg.sender == wmbGateway, "WmbApp: Only WMB gateway can call this function");
         require(trustedRemotes[fromChainId][from], "WmbApp: Remote is not trusted");
-        if (blockMode) {
-            _wmbReceive(data, messageId, fromChainId, from);
-        } else {
-            uint reserveGasForFailedMessageStore = 35_000;
-            (bool success, bytes memory reason) = address(this).excessivelySafeCall(gasleft() - reserveGasForFailedMessageStore, 150, abi.encodeWithSelector(this.nonblockingWmbReceive.selector, data, messageId, fromChainId, from));
-            // try-catch all errors/exceptions
-            if (!success) {
-                _storeFailedMessage(data, messageId, fromChainId, from, reason);
-            }
+        
+        (bool success, bytes memory reason) = address(this).excessivelySafeCall(gasleft() - RESERVE_GAS_FOR_FAILED_MESSAGE_STORE, 150, abi.encodeWithSelector(this.nonblockingWmbReceive.selector, data, messageId, fromChainId, from));
+        // try-catch all errors/exceptions
+        if (!success) {
+            _storeFailedMessage(data, messageId, fromChainId, from, reason);
         }
     }
 
@@ -94,24 +70,9 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         address from
     ) public {
         require(msg.sender == address(this), "WmbApp: Only this contract can call this function");
+        // call the internal _wmbReceive function, which should be implemented by the inheriting contract
         _wmbReceive(data, messageId, fromChainId, from);
     }
-
-    /**
-     * @notice Override this function to handle received WMB messages
-     * @dev Function to handle received WMB messages
-     * @param data Message data
-     * @param messageId Message ID
-     * @param fromChainId ID of the chain the message is from
-     * @param from Address of the message sender on source chain
-     * 
-     */
-    function _wmbReceive(
-        bytes calldata data,
-        bytes32 messageId,
-        uint256 fromChainId,
-        address from
-    ) internal virtual;
 
     /**
      * @dev Stores the failed message in the `failedMessages` mapping and emits a `MessageFailed` event
@@ -128,7 +89,7 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         address from,
         bytes memory _reason
     ) internal virtual {
-        failedMessages[fromChainId][from][messageId] = keccak256(data);
+        failedMessages[messageId] = keccak256(data);
         emit MessageFailed(messageId, fromChainId, from, data, _reason);
     }
 
@@ -146,22 +107,13 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         address from
     ) public payable virtual {
         // assert there is message to retry
-        bytes32 messageHash = failedMessages[fromChainId][from][messageId];
+        bytes32 messageHash = failedMessages[messageId];
         require(messageHash != bytes32(0), "WmbApp: no stored message");
         require(keccak256(data) == messageHash, "WmbApp: invalid message data");
         // clear the stored message
-        delete failedMessages[fromChainId][from][messageId];
+        delete failedMessages[messageId];
         // execute the message. revert if it fails again
         _wmbReceive(data, messageId, fromChainId, from);
         emit RetryMessageSuccess(fromChainId, from, messageId, messageHash);
-    }
-
-    // batch set trustedRemotes
-    function setTrustedRemotes(uint[] calldata fromChainIds, address[] calldata froms, bool[] calldata trusted) external {
-        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbApp: must have admin role to set trusted remotes");
-        require(fromChainIds.length == froms.length && froms.length == trusted.length, "WmbApp: invalid input");
-        for (uint i = 0; i < fromChainIds.length; i++) {
-            trustedRemotes[fromChainIds[i]][froms[i]] = trusted[i];
-        }
     }
 }

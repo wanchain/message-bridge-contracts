@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "../WmbApp.sol";
+import "../app/WmbApp.sol";
 
 contract MockApp is WmbApp {
     
@@ -16,8 +16,8 @@ contract MockApp is WmbApp {
     mapping(uint => bytes32) public sentMessages;
     uint public sentCount;
 
-    constructor(address admin, address _wmbGateway, bool _blockMode) WmbApp() {
-        initialize(admin, _wmbGateway, _blockMode);
+    constructor(address admin, address _wmbGateway) WmbApp() {
+        initialize(admin, _wmbGateway);
     }
 
     function burnGas() public pure {
@@ -45,7 +45,7 @@ contract MockApp is WmbApp {
         address to,
         bytes calldata data
     ) public {
-        bytes32 messageId = IWmbGateway(wmbGateway).dispatchMessage(toChainId, to, data);
+        bytes32 messageId = _dispatchMessage(toChainId, to, data);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }
@@ -54,7 +54,7 @@ contract MockApp is WmbApp {
         uint256 toChainId,
         Message[] calldata messages
     ) public {
-        bytes32 messageId = IWmbGateway(wmbGateway).dispatchMessageBatch(toChainId, messages);
+        bytes32 messageId = _dispatchMessageBatch(toChainId, messages);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }

@@ -210,8 +210,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         );
     }
 
-
-
     /**
      * @dev Function for the WMB Gateway contract, to be used by the contract administrator.
      * These functions are only accessible to accounts with the DEFAULT_ADMIN_ROLE.
