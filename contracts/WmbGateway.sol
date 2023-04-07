@@ -105,9 +105,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
         
         uint length = messages.length;
-        uint totalGasLimit = msg.value / baseFees[toChainId];
-        uint eachGasLimit = totalGasLimit / length;
-        require(eachGasLimit >= minGasLimit, "WmbGateway: Fee too low");
+        uint gasLimit = msg.value / baseFees[toChainId];
+        require(gasLimit >= minGasLimit, "WmbGateway: Fee too low");
 
         for (uint256 i = 0; i < length; i++) {
             bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data);
@@ -118,7 +117,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             }
         }
 
-        messageGasLimit[messageId] = totalGasLimit;
+        messageGasLimit[messageId] = gasLimit;
         emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
     }
 
@@ -357,7 +356,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         uint length = data.messages.length;
         uint i = 0;
         for (i = 0; i < length; i++) {
-            try IWmbReceiver(data.messages[i].to).wmbReceive{gas: data.gasLimit}(data.messages[i].data, messageId, data.sourceChainId, data.sourceContract) {
+            try IWmbReceiver(data.messages[i].to).wmbReceive{gas: gasleft()}(data.messages[i].data, messageId, data.sourceChainId, data.sourceContract) {
                 // do nothing
             } catch (bytes memory reason) {
                 revert MessageBatchFailure({
