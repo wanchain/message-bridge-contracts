@@ -125,6 +125,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         uint256 targetChainId,
         uint256 gasLimit
     ) public view returns (uint256 fee) {
+        require(supportedDstChains[targetChainId], "WmbGateway: Unsupported destination chain");
         require(gasLimit <= maxGasLimit, "WmbGateway: Gas limit exceeds maximum");
         if (gasLimit < minGasLimit) {
             return baseFees[targetChainId] * minGasLimit;

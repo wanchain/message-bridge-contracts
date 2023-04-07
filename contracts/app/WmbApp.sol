@@ -8,7 +8,8 @@ import "../interfaces/IWmbReceiver.sol";
 
 /**
  * @title WmbApp
- * @dev Abstract contract to be inherited by applications to use Wanchain Message Bridge for send and receive messages
+ * @dev Abstract contract to be inherited by applications to use Wanchain Message Bridge for send and receive messages between different chains.
+ * All interfaces with WmbGateway have been encapsulated, so users do not need to have any interaction with the WmbGateway contract.
  */
 abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
     // The address of the WMB Gateway contract
@@ -42,6 +43,16 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
         for (uint i = 0; i < fromChainIds.length; i++) {
             trustedRemotes[fromChainIds[i]][froms[i]] = trusted[i];
         }
+    }
+
+    /**
+     * @dev Function to estimate fee in native coin for sending a message to the WMB Gateway
+     * @param toChain ID of the chain the message is to
+     * @param gasLimit Gas limit for the message
+     * @return fee Fee in native coin
+     */
+    function estimateFee(uint256 toChain, uint256 gasLimit) virtual public view returns (uint256) {
+        return IWmbGateway(wmbGateway).estimateFee(toChain, gasLimit);
     }
 
     /**
