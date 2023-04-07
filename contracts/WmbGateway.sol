@@ -122,6 +122,17 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
     }
 
+    function estimateFee(
+        uint256 targetChainId,
+        uint256 gasLimit
+    ) public view returns (uint256 fee) {
+        require(gasLimit <= maxGasLimit, "WmbGateway: Gas limit exceeds maximum");
+        if (gasLimit < minGasLimit) {
+            return baseFees[targetChainId] * minGasLimit;
+        }
+        return baseFees[targetChainId] * gasLimit;
+    }
+
     // Receives a message sent from another chain
     function receiveMessage(
         bytes32 messageId,
@@ -199,17 +210,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         );
     }
 
-    // Estimates the fee required to send a message to a target chain
-    function estimateFee(
-        uint256 targetChainId,
-        uint256 gasLimit
-    ) public view returns (uint256 fee) {
-        require(gasLimit <= maxGasLimit, "WmbGateway: Gas limit exceeds maximum");
-        if (gasLimit < minGasLimit) {
-            return baseFees[targetChainId] * minGasLimit;
-        }
-        return baseFees[targetChainId] * gasLimit;
-    }
+
 
     /**
      * @dev Function for the WMB Gateway contract, to be used by the contract administrator.
