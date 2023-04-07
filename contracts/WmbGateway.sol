@@ -26,7 +26,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     // Global maximum gas limit for a message
     uint256 public maxGasLimit;
     uint256 public minGasLimit;
-    uint256 public defaultGasLimit;
 
     uint256 public maxMessageLength;
 
@@ -41,6 +40,9 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     // Mapping of target chain IDs to base fees
     mapping(uint256 => uint256) public baseFees;
+
+    // Mapping of messageId to gas limit
+    mapping(bytes32 => uint256) public messageGasLimit;
 
     // Mapping of sourceChainId->dstChainId->sourceContract->targetContract->nonce to prevent replay attacks
     mapping(uint256 => mapping(uint256 => mapping(address => mapping(address => uint256)))) public nonces;
@@ -80,7 +82,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         chainId = _chainId;
         maxGasLimit = 8_000_000;
         minGasLimit = 150_000;
-        defaultGasLimit = 2_000_000;
         maxMessageLength = 10_000;
         signatureVerifier = _signatureVerifier;
         wanchainStoremanAdminSC = _wanchainStoremanAdminSC;
@@ -91,48 +92,34 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
      */
 
     function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
-        messageId = _sendMessage(toChainId, to, data, defaultGasLimit, msg.value);
+        require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
+        uint gasLimit = msg.value / baseFees[toChainId];
+        require(gasLimit >= minGasLimit, "WmbGateway: Fee too low");
+
+        messageId = _sendMessage(toChainId, to, data);
+        messageGasLimit[messageId] = gasLimit;
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
     }
 
     function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
-        uint fee = estimateFee(toChainId, defaultGasLimit);
+        require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
+        
         uint length = messages.length;
+        uint totalGasLimit = msg.value / baseFees[toChainId];
+        uint eachGasLimit = totalGasLimit / length;
+        require(eachGasLimit >= minGasLimit, "WmbGateway: Fee too low");
+
         for (uint256 i = 0; i < length; i++) {
-            bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data, defaultGasLimit, fee);
+            bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data);
             if (i == 0) {
                 messageId = subId;
             } else {
                 messageId = keccak256(abi.encodePacked(messageId, subId));
             }
         }
-        
-        require(msg.value >= (fee * length), "WmbGateway: Insufficient fee");
+
+        messageGasLimit[messageId] = totalGasLimit;
         emit MessageBatchDispatched(messageId, msg.sender, toChainId, messages);
-    }
-
-    function sendCustomMessage(
-        uint256 targetChainId,
-        address targetContract,
-        bytes calldata messageData,
-        uint256 gasLimit
-    ) public payable nonReentrant returns (bytes32 messageId) {
-        messageId = _sendMessage(
-            targetChainId,
-            targetContract,
-            messageData,
-            gasLimit,
-            msg.value
-        );
-
-        emit MessageDispatchedExtended(
-            messageId,
-            msg.sender,
-            targetChainId,
-            targetContract,
-            messageData,
-            gasLimit
-        );
     }
 
     // Receives a message sent from another chain
@@ -175,12 +162,13 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         );
     }
 
-        // Receives a message sent from another chain
+    // Receives a message sent from another chain
     function receiveBatchMessage(
         bytes32 messageId,
         uint256 sourceChainId,
         address sourceContract,
         Message[] calldata messages,
+        uint256 gasLimit,
         bytes32 smgID,
         bytes calldata r, 
         bytes32 s
@@ -191,7 +179,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
                 sourceChainId,
                 sourceContract,
                 messages,
-                defaultGasLimit
+                gasLimit
             )
         );
 
@@ -217,21 +205,10 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         uint256 gasLimit
     ) public view returns (uint256 fee) {
         require(gasLimit <= maxGasLimit, "WmbGateway: Gas limit exceeds maximum");
-        require(gasLimit >= minGasLimit, "WmbGateway: Gas limit too low");
+        if (gasLimit < minGasLimit) {
+            return baseFees[targetChainId] * minGasLimit;
+        }
         return baseFees[targetChainId] * gasLimit;
-    }
-
-    function getNonce(
-        uint256 fromChainId,
-        uint256 toChainId,
-        address fromAddress,
-        address toAddress
-    ) public view returns (uint256) {
-        return nonces[fromChainId][toChainId][fromAddress][toAddress];
-    }
-
-    function getChainId() public view returns (uint256) {
-        return chainId;
     }
 
     /**
@@ -253,11 +230,10 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         signatureVerifier = _signatureVerifier;
     }
 
-    function setGasLimit(uint256 _maxGasLimit, uint256 _minGasLimit, uint256 _defaultGasLimit) external {
+    function setGasLimit(uint256 _maxGasLimit, uint256 _minGasLimit) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         maxGasLimit = _maxGasLimit;
         minGasLimit = _minGasLimit;
-        defaultGasLimit = _defaultGasLimit;
     }
 
     function setMaxMessageLength(uint256 _maxMessageLength) external {
@@ -277,7 +253,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             supportedDstChains[targetChainIds[i]] = supported[i];
         }
     }
-
 
     /**
      * @dev Internal Functions.
@@ -337,20 +312,10 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     function _sendMessage(
         uint256 targetChainId,
         address targetContract,
-        bytes calldata messageData,
-        uint256 gasLimit,
-        uint256 value
+        bytes calldata messageData
     ) internal returns (bytes32 messageId) {
-        require(supportedDstChains[targetChainId], "WmbGateway: Unsupported destination chain");
         uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
-        uint256 fee = estimateFee(targetChainId, gasLimit);
-        require(value >= fee, "WmbGateway: Insufficient fee");
-        if (value > fee) {
-            Address.sendValue(payable(msg.sender), value - fee);
-        }
-
         require(messageData.length <= maxMessageLength, "WmbGateway: Message too long");
-
         messageId = keccak256(
             abi.encodePacked(
             chainId,

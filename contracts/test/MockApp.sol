@@ -40,13 +40,21 @@ contract MockApp is WmbApp {
         burnGas();
     }
 
-    function send(
+    function dispatchMessage(
         uint256 toChainId,
         address to,
-        bytes calldata data,
-        uint256 gasLimit
+        bytes calldata data
     ) public {
-        bytes32 messageId = IWmbGateway(wmbGateway).sendCustomMessage(toChainId, to, data, gasLimit);
+        bytes32 messageId = IWmbGateway(wmbGateway).dispatchMessage(toChainId, to, data);
+        sentMessages[sentCount] = messageId;
+        sentCount++;
+    }
+
+    function dispatchMessageBatch(
+        uint256 toChainId,
+        Message[] calldata messages
+    ) public {
+        bytes32 messageId = IWmbGateway(wmbGateway).dispatchMessageBatch(toChainId, messages);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }
