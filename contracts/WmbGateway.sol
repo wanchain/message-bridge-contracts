@@ -15,9 +15,6 @@ import "./interfaces/IWmbReceiver.sol";
  * @title WmbGateway
  * @dev The main entry point of Wanchain cross-chain asset transfer system.
  *      The contract serves as a gateway for cross-chain transactions between different blockchain networks. 
- *      This contract supports two working modes: blocking and non-blocking mode.
- *      In blocking mode, if a target contract call fails, the channel blocks until the issue is resolved.
- *      In non-blocking mode, failed transactions are recorded in the dapp contract and do not block subsequent transaction executions.
  */
 contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGateway, IWmbConfig {
     // slip-0044 standands chainId for local chain
