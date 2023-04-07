@@ -2,14 +2,14 @@ const { expect } = require("chai");
 const { ethers } = require("hardhat");
 const { keccak256, arrayify, abi, solidityPack, defaultAbiCoder } = ethers.utils;
 
-export function splitSignature(signature) {
+function splitSignature(signature) {
   const r = signature.slice(0, 66);
   const s = "0x" + signature.slice(66, 130);
   const v = "0x" + signature.slice(130, 132);
   return { r, s, v };
 }
 
-export async function signMessage(privateKey, message) {
+function signMessage(privateKey, message) {
   const signingKey = new ethers.utils.SigningKey(privateKey);
   const sig = signingKey.signDigest(ethers.utils.arrayify(message));
   return ethers.utils.joinSignature(sig);
@@ -34,7 +34,6 @@ describe("WmbGateway", function () {
       mockMPC.address,
     );
     chainId = await wmbGateway.chainId();
-    console.log('chainId', chainId);
   });
 
   describe("Deployment", function () {
@@ -148,7 +147,7 @@ describe("WmbGateway", function () {
         )
       );
   
-      const signature = await signMessage(validatorPrivateKey, sigHash);
+      const signature = signMessage(validatorPrivateKey, sigHash);
       const { r, s, v } = splitSignature(signature);
   
       await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
@@ -218,7 +217,7 @@ describe("WmbGateway", function () {
         )
       );
   
-      const signature = await signMessage(validatorPrivateKey, sigHash);
+      const signature = signMessage(validatorPrivateKey, sigHash);
       const { r, s, v } = splitSignature(signature);
   
       await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
@@ -237,7 +236,6 @@ describe("WmbGateway", function () {
   
       // Verify the messages were received
       const receivedMessage = await wmbReceiver.receivedMessages(messageId);
-      console.log(receivedMessage);
       expect(receivedMessage.messageId).to.equal(messageId);
       expect(receivedMessage.data).to.equal(messages[2].data);
       expect(receivedMessage.fromChainId).to.equal(sourceChainId);
@@ -253,9 +251,16 @@ describe("WmbGateway", function () {
       // Then, set the base fee and check that the fee is updated accordingly
       const newBaseFee = 10000000000;
       await wmbGateway.batchSetBaseFees([targetChainId], [newBaseFee]);
+      await wmbGateway.setSupportedDstChains([targetChainId], [true]);
 
-      const newFee = await wmbGateway.estimateFee(targetChainId, gasLimit);
-      const expectedNewFee = newBaseFee * gasLimit;
+      let newFee = await wmbGateway.estimateFee(targetChainId, gasLimit);
+      let expectedNewFee = newBaseFee * gasLimit;
+      expect(newFee).to.equal(expectedNewFee);
+
+      let min = await wmbGateway.minGasLimit();
+
+      newFee = await wmbGateway.estimateFee(targetChainId, 0);
+      expectedNewFee = newBaseFee * min;
 
       expect(newFee).to.equal(expectedNewFee);
     });

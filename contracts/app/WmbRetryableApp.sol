@@ -38,6 +38,10 @@ abstract contract WmbRetryableApp is WmbApp {
         bytes32 messageHash
     );
 
+    event MessageDroped(
+        bytes32 indexed messageId
+    );
+
     /**
      * @dev Function to receive a WMB message from the WMB Gateway
      * @param data Message data
@@ -75,6 +79,30 @@ abstract contract WmbRetryableApp is WmbApp {
     }
 
     /**
+     * @notice Retry a failed message by resending the same data
+     * @param data The data of the failed message
+     * @param messageId The ID of the failed message
+     * @param fromChainId The ID of the source chain
+     * @param from The address of the source contract
+     */
+    function retryMessage(
+        bytes calldata data,
+        bytes32 messageId,
+        uint256 fromChainId,
+        address from
+    ) public virtual {
+        // assert there is message to retry
+        bytes32 messageHash = failedMessages[messageId];
+        require(messageHash != bytes32(0), "WmbApp: no stored message");
+        require(keccak256(data) == messageHash, "WmbApp: invalid message data");
+        // clear the stored message
+        delete failedMessages[messageId];
+        // execute the message. revert if it fails again
+        _wmbReceive(data, messageId, fromChainId, from);
+        emit RetryMessageSuccess(fromChainId, from, messageId, messageHash);
+    }
+
+    /**
      * @dev Stores the failed message in the `failedMessages` mapping and emits a `MessageFailed` event
      * @param data The data of the failed message
      * @param messageId The ID of the failed message
@@ -94,26 +122,14 @@ abstract contract WmbRetryableApp is WmbApp {
     }
 
     /**
-     * @notice Retry a failed message by resending the same data
-     * @param data The data of the failed message
+     * @notice Drop a failed message by messageId
      * @param messageId The ID of the failed message
-     * @param fromChainId The ID of the source chain
-     * @param from The address of the source contract
      */
-    function retryMessage(
-        bytes calldata data,
-        bytes32 messageId,
-        uint256 fromChainId,
-        address from
-    ) public payable virtual {
-        // assert there is message to retry
-        bytes32 messageHash = failedMessages[messageId];
-        require(messageHash != bytes32(0), "WmbApp: no stored message");
-        require(keccak256(data) == messageHash, "WmbApp: invalid message data");
+    function _dropMessage(
+        bytes32 messageId
+    ) internal virtual {
         // clear the stored message
         delete failedMessages[messageId];
-        // execute the message. revert if it fails again
-        _wmbReceive(data, messageId, fromChainId, from);
-        emit RetryMessageSuccess(fromChainId, from, messageId, messageHash);
+        emit MessageDroped(messageId);
     }
 }

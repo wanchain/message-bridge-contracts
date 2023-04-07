@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "../app/WmbApp.sol";
+import "../app/WmbRetryableApp.sol";
 
-contract MockApp is WmbApp {
+contract MockRetryableApp is WmbRetryableApp {
     
     struct MessageData {
         bytes32 messageId;
@@ -44,7 +44,7 @@ contract MockApp is WmbApp {
         uint256 toChainId,
         address to,
         bytes calldata data
-    ) public payable {
+    ) public {
         bytes32 messageId = _dispatchMessage(toChainId, to, data);
         sentMessages[sentCount] = messageId;
         sentCount++;
@@ -53,9 +53,14 @@ contract MockApp is WmbApp {
     function dispatchMessageBatch(
         uint256 toChainId,
         Message[] calldata messages
-    ) public payable {
+    ) public {
         bytes32 messageId = _dispatchMessageBatch(toChainId, messages);
         sentMessages[sentCount] = messageId;
         sentCount++;
+    }
+
+    function dropMessage(bytes32 messageId) public {
+        require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbApp: must have admin role to set trusted remotes");
+        _dropMessage(messageId);
     }
 }

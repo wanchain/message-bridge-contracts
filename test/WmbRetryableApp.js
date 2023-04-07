@@ -15,7 +15,7 @@ function signMessage(privateKey, message) {
   return ethers.utils.joinSignature(sig);
 }
 
-describe("WmbApp", function () {
+describe("WmbRetryableApp", function () {
   let WmbGateway, wmbGateway, mockMPC, owner, addr1, addr2, chainId, accounts, wmbReceiver, WmbReceiver;
 
   beforeEach(async function () {
@@ -38,9 +38,9 @@ describe("WmbApp", function () {
     await wmbGateway.batchSetBaseFees([chainId, 123], [2000000000, 2000000000]);
   });
 
-  it("receive message", async function () {
+  it("receive message failed and retry", async function () {
     // Deploy dummy WmbReceiver contract
-    const WmbReceiver = await ethers.getContractFactory("MockApp");
+    const WmbReceiver = await ethers.getContractFactory("MockRetryableApp");
     const wmbReceiver = await WmbReceiver.deploy(
       accounts[0],
       wmbGateway.address
@@ -53,7 +53,7 @@ describe("WmbApp", function () {
     const sourceContract = "0x1234567890123456789012345678901234567890";
     const targetContract = wmbReceiver.address;
     const messageData = "0x12345678";
-    const gasLimit = 2_000_000;
+    const gasLimit = 100_000;
     const messageId = keccak256(
       solidityPack(
         ["uint256", "address", "uint256", "address", "bytes", "uint256"],
@@ -76,7 +76,6 @@ describe("WmbApp", function () {
 
     await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
 
-    // Call receiveMessage
     let ret = await wmbGateway.receiveMessage(
       messageId,
       sourceChainId,
@@ -88,80 +87,93 @@ describe("WmbApp", function () {
       r,
       s
     );
-    ret = await ret.wait();
-
-    expect(ret.events.some(e => e.event === 'MessageIdExecuted')).to.be.true;
     
-    // let have = await wmbGateway.hasStoredFailedMessage(sourceChainId, sourceContract, targetContract);
-    // expect(have).to.be.false;
+    ret = await ret.wait();
+    expect(ret.events.some(e => e.event === 'MessageIdExecuted')).to.be.true;
 
-    // Retry message
-    // ret = await wmbReceiver.retryMessage(
-    //   messageData,
-    //   messageId,
-    //   sourceChainId,
-    //   sourceContract
-    // );
-    // ret = await ret.wait();
-    // expect(ret.events.some(e => e.event === 'RetryMessageSuccess')).to.be.true;
+    const interface = new ethers.utils.Interface(WmbReceiver.interface.fragments);
+    const decodedEvent = interface.parseLog(ret.events[0]);
+    expect(decodedEvent.name).to.equal('MessageFailed');
 
-    // Verify that message was delivered to the WmbReceiver contract
-    // const receivedMessage = await wmbReceiver.receivedMessages(messageId);
-    // expect(receivedMessage.data).to.equal(messageData);
-    // expect(receivedMessage.fromChainId).to.equal(sourceChainId);
-    // expect(receivedMessage.from).to.equal(sourceContract);
+    let hash = await wmbReceiver.failedMessages(messageId);
+    expect(hash).to.equal(keccak256(messageData));
+
+    ret = await wmbReceiver.retryMessage(messageData, messageId, sourceChainId, sourceContract);
+    ret = await ret.wait();
+
+    expect(ret.events.some(e => e.event === 'RetryMessageSuccess')).to.be.true;
+
+    hash = await wmbReceiver.failedMessages(messageId);
+    expect(hash).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
   });
 
-  // send message from a dapp smart contract
-  it("send message from a dapp smart contract", async function () {
-    const WmbSender = await ethers.getContractFactory("MockApp");
-    const wmbSender = await WmbSender.deploy(
+  it("receive message failed and drop", async function () {
+    // Deploy dummy WmbReceiver contract
+    const WmbReceiver = await ethers.getContractFactory("MockRetryableApp");
+    const wmbReceiver = await WmbReceiver.deploy(
       accounts[0],
       wmbGateway.address
     );
-    await wmbSender.deployed();
+    await wmbReceiver.deployed();
 
-    let fee = await wmbSender.estimateFee(chainId, 300000);
 
-    let ret = await wmbSender.dispatchMessage(
-      chainId,
-      accounts[1],
-      '0x12345678',
-      { value: fee }
+    // Get nonce and fee
+    const sourceChainId = 123;
+    const sourceContract = "0x1234567890123456789012345678901234567890";
+    const targetContract = wmbReceiver.address;
+    const messageData = "0x12345678";
+    const gasLimit = 100_000;
+    const messageId = keccak256(
+      solidityPack(
+        ["uint256", "address", "uint256", "address", "bytes", "uint256"],
+        [sourceChainId, sourceContract, chainId, targetContract, messageData, 1]
+      )
     );
+
+    const smgID = "0x1234567890123456789012345678901234567890123456789012345678901234";
+    const validatorPrivateKey = "0x1234567890123456789012345678901234567890123456789012345678901234";
+
+    const sigHash = keccak256(
+      defaultAbiCoder.encode(
+        ["bytes32", "uint256", "address", "uint256", "address", "bytes"],
+        [messageId, sourceChainId, sourceContract, chainId, targetContract, messageData]
+      )
+    );
+
+    const signature = await signMessage(validatorPrivateKey, sigHash);
+    const { r, s, v } = splitSignature(signature);
+
+    await wmbReceiver.setTrustedRemotes([sourceChainId], [sourceContract], [true]);
+
+    let ret = await wmbGateway.receiveMessage(
+      messageId,
+      sourceChainId,
+      sourceContract,
+      targetContract,
+      messageData,
+      gasLimit,
+      smgID,
+      r,
+      s
+    );
+    
     ret = await ret.wait();
-    const interface = new ethers.utils.Interface(WmbGateway.interface.fragments);
+    expect(ret.events.some(e => e.event === 'MessageIdExecuted')).to.be.true;
+
+    const interface = new ethers.utils.Interface(WmbReceiver.interface.fragments);
     const decodedEvent = interface.parseLog(ret.events[0]);
-    expect(decodedEvent.name).to.equal('MessageDispatched');
+    expect(decodedEvent.name).to.equal('MessageFailed');
 
-    let messageId = await wmbSender.sentMessages(0);
-    expect(messageId).to.equal(decodedEvent.args.messageId);
+    let hash = await wmbReceiver.failedMessages(messageId);
+    expect(hash).to.equal(keccak256(messageData));
 
-  });
-
-  it("send batch messages from a dapp smart contract", async function () {
-    const WmbSender = await ethers.getContractFactory("MockApp");
-    const wmbSender = await WmbSender.deploy(
-      accounts[0],
-      wmbGateway.address
-    );
-    await wmbSender.deployed();
-
-    let fee = await wmbSender.estimateFee(chainId, 300000);
-
-    let ret = await wmbSender.dispatchMessageBatch(
-      chainId,
-      [[accounts[1], '0x12345678'], [accounts[2], '0x12345678']],
-      { value: fee }
-    );
+    ret = await wmbReceiver.dropMessage(messageId);
     ret = await ret.wait();
-    const interface = new ethers.utils.Interface(WmbGateway.interface.fragments);
-    const decodedEvent = interface.parseLog(ret.events[0]);
-    expect(decodedEvent.name).to.equal('MessageBatchDispatched');
 
-    let messageId = await wmbSender.sentMessages(0);
-    expect(messageId).to.equal(decodedEvent.args.messageId);
+    expect(ret.events.some(e => e.event === 'MessageDroped')).to.be.true;
 
+    hash = await wmbReceiver.failedMessages(messageId);
+    expect(hash).to.equal('0x0000000000000000000000000000000000000000000000000000000000000000');
   });
 });
 

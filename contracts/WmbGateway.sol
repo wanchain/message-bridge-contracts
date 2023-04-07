@@ -93,9 +93,9 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
         require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
+        require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
+        
         uint gasLimit = msg.value / baseFees[toChainId];
-        require(gasLimit >= minGasLimit, "WmbGateway: Fee too low");
-
         messageId = _sendMessage(toChainId, to, data);
         messageGasLimit[messageId] = gasLimit;
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
@@ -103,10 +103,10 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
         require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
+        require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
         
         uint length = messages.length;
         uint gasLimit = msg.value / baseFees[toChainId];
-        require(gasLimit >= minGasLimit, "WmbGateway: Fee too low");
 
         for (uint256 i = 0; i < length; i++) {
             bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data);
