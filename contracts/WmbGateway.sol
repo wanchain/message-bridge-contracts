@@ -91,6 +91,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
         require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
         require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
+        require(msg.value <= maxGasLimit * baseFees[toChainId], "WmbGateway: Fee too large");
         
         uint gasLimit = msg.value / baseFees[toChainId];
         messageId = _sendMessage(toChainId, to, data);
@@ -142,17 +143,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         bytes calldata r, 
         bytes32 s
     ) external {
-        _receiveMessage(
-            messageId,
-            ReceiveMsgData(
-                sourceChainId,
-                sourceContract,
-                targetContract,
-                messageData,
-                gasLimit
-            )
-        );
-
         bytes32 sigHash = keccak256(abi.encode(
             messageId,
             sourceChainId,
@@ -168,6 +158,17 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
                 sigHash, smgID, r, s
             )
         );
+
+        _receiveMessage(
+            messageId,
+            ReceiveMsgData(
+                sourceChainId,
+                sourceContract,
+                targetContract,
+                messageData,
+                gasLimit
+            )
+        );
     }
 
     // Receives a message sent from another chain
@@ -181,16 +182,6 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         bytes calldata r, 
         bytes32 s
     ) external {
-        _receiveBatchMessage(
-            messageId,
-            ReceiveBatchMsgData(
-                sourceChainId,
-                sourceContract,
-                messages,
-                gasLimit
-            )
-        );
-
         bytes32 sigHash = keccak256(abi.encode(
             messageId,
             sourceChainId,
@@ -203,6 +194,16 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         verifyMpcSignature(
             SigData(
                 sigHash, smgID, r, s
+            )
+        );
+
+        _receiveBatchMessage(
+            messageId,
+            ReceiveBatchMsgData(
+                sourceChainId,
+                sourceContract,
+                messages,
+                gasLimit
             )
         );
     }
