@@ -298,8 +298,9 @@ describe("WmbGateway", function () {
       it("should set the gas limit", async function () {
         const maxGasLimit = 1000000;
         const minGasLimit = 1000;
+        const defaultGasLimit = 2000000;
     
-        await wmbGateway.setGasLimit(maxGasLimit, minGasLimit);
+        await wmbGateway.setGasLimit(maxGasLimit, minGasLimit, defaultGasLimit);
     
         const actualMaxGasLimit = await wmbGateway.maxGasLimit();
         expect(actualMaxGasLimit).to.equal(maxGasLimit, "Failed to set max gas limit");

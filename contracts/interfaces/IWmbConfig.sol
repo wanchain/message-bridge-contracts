@@ -18,8 +18,10 @@ interface IWmbConfig {
     /**
      * @dev Sets the maximum global gas limit
      * @param maxGasLimit The maximum global gas limit value to set
+     * @param minGasLimit The minimum global gas limit value to set
+     * @param defaultGasLimit The default global gas limit value to set
      */
-    function setGasLimit(uint256 maxGasLimit, uint256 minGasLimit) external;
+    function setGasLimit(uint256 maxGasLimit, uint256 minGasLimit, uint256 defaultGasLimit) external;
 
     /**
      * @notice Sets the maximum message length allowed by the contract

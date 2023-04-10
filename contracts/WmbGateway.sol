@@ -23,6 +23,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     // Global maximum gas limit for a message
     uint256 public maxGasLimit;
     uint256 public minGasLimit;
+    uint256 public defaultGasLimit;
 
     uint256 public maxMessageLength;
 
@@ -79,6 +80,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         chainId = _chainId;
         maxGasLimit = 8_000_000;
         minGasLimit = 150_000;
+        defaultGasLimit = 2_000_000;
         maxMessageLength = 10_000;
         signatureVerifier = _signatureVerifier;
         wanchainStoremanAdminSC = _wanchainStoremanAdminSC;
@@ -93,7 +95,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
         require(msg.value <= maxGasLimit * baseFees[toChainId], "WmbGateway: Fee too large");
         
-        uint gasLimit = msg.value / baseFees[toChainId];
+        uint gasLimit = _getGasLimitFromValue(toChainId);
         messageId = _sendMessage(toChainId, to, data);
         messageGasLimit[messageId] = gasLimit;
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
@@ -104,7 +106,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
         
         uint length = messages.length;
-        uint gasLimit = msg.value / baseFees[toChainId];
+        uint gasLimit = _getGasLimitFromValue(toChainId);
 
         for (uint256 i = 0; i < length; i++) {
             bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data);
@@ -153,7 +155,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         ));
 
         // verify signature
-        verifyMpcSignature(
+        _verifyMpcSignature(
             SigData(
                 sigHash, smgID, r, s
             )
@@ -191,7 +193,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         ));
 
         // verify signature
-        verifyMpcSignature(
+        _verifyMpcSignature(
             SigData(
                 sigHash, smgID, r, s
             )
@@ -227,10 +229,11 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         signatureVerifier = _signatureVerifier;
     }
 
-    function setGasLimit(uint256 _maxGasLimit, uint256 _minGasLimit) external {
+    function setGasLimit(uint256 _maxGasLimit, uint256 _minGasLimit, uint256 _defaultGasLimit) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         maxGasLimit = _maxGasLimit;
         minGasLimit = _minGasLimit;
+        defaultGasLimit = _defaultGasLimit;
     }
 
     function setMaxMessageLength(uint256 _maxMessageLength) external {
@@ -259,7 +262,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     /// @param smgID                            ID of storeman group
     /// @return curveID                         ID of elliptic curve
     /// @return PK                              PK of storeman group
-    function acquireReadySmgInfo(bytes32 smgID)
+    function _acquireReadySmgInfo(bytes32 smgID)
         internal
         view
         returns (uint curveID, bytes memory PK)
@@ -277,7 +280,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     /// @notice       convert bytes to bytes32
     /// @param b      bytes array
     /// @param offset offset of array to begin convert
-    function bytesToBytes32(bytes memory b, uint offset) internal pure returns (bytes32 result) {
+    function _bytesToBytes32(bytes memory b, uint offset) internal pure returns (bytes32 result) {
         assembly {
             result := mload(add(add(b, offset), 32))
         }
@@ -287,23 +290,30 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
      * @dev Verifies an MPC signature for a given message and Storeman Group ID
      * @param sig The signature to verify
      */
-    function verifyMpcSignature(SigData memory sig) internal {
+    function _verifyMpcSignature(SigData memory sig) internal {
         uint curveID;
         bytes memory PK;
 
         // Acquire the curve ID and group public key for the given Storeman Group ID
-        (curveID, PK) = acquireReadySmgInfo(sig.smgID);
+        (curveID, PK) = _acquireReadySmgInfo(sig.smgID);
 
         // Extract the X and Y components of the group public key
-        bytes32 PKx = bytesToBytes32(PK, 0);
-        bytes32 PKy = bytesToBytes32(PK, 32);
+        bytes32 PKx = _bytesToBytes32(PK, 0);
+        bytes32 PKy = _bytesToBytes32(PK, 32);
 
         // Extract the X and Y components of the signature
-        bytes32 Rx = bytesToBytes32(sig.r, 0);
-        bytes32 Ry = bytesToBytes32(sig.r, 32);
+        bytes32 Rx = _bytesToBytes32(sig.r, 0);
+        bytes32 Ry = _bytesToBytes32(sig.r, 32);
 
         // Verify the signature using the Wanchain MPC contract
         require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.sigHash), "WmbGateway: Signature verification failed");
+    }
+
+    function _getGasLimitFromValue(uint256 toChain) internal view returns (uint256) {
+        if (baseFees[toChain] == 0) {
+            return defaultGasLimit;
+        }
+        return msg.value / baseFees[toChain];
     }
 
     function _sendMessage(
