@@ -77,4 +77,19 @@ interface IWmbGateway is IEIP5164 {
         bytes calldata r, 
         bytes32 s
     ) external;
+
+    error SignatureVerifyFailed(
+        bytes32 smgID,
+        bytes32 sigHash,
+        bytes r,
+        bytes32 s
+    );
+
+    error StoremanGroupNotReady(
+        bytes32 smgID,
+        uint256 status,
+        uint256 timestamp,
+        uint256 startTime,
+        uint256 endTime
+    );
 }

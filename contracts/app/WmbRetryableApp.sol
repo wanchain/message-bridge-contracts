@@ -20,7 +20,7 @@ abstract contract WmbRetryableApp is WmbApp {
 
     // A mapping of failed messages by their chain ID, address, and message ID, with the value being the message hash
     // This is used to keep track of failed messages in order to retry them later
-    // fromChainId => fromAddress => messageId => messageHash
+    // messageId => messageHash
     mapping(bytes32 => bytes32) public failedMessages;
 
     event MessageFailed(
@@ -94,7 +94,7 @@ abstract contract WmbRetryableApp is WmbApp {
         // assert there is message to retry
         bytes32 messageHash = failedMessages[messageId];
         require(messageHash != bytes32(0), "WmbApp: no stored message");
-        require(keccak256(data) == messageHash, "WmbApp: invalid message data");
+        require(keccak256(abi.encodePacked(data, messageId, fromChainId, from)) == messageHash, "WmbApp: invalid message data");
         // clear the stored message
         delete failedMessages[messageId];
         // execute the message. revert if it fails again
@@ -117,7 +117,7 @@ abstract contract WmbRetryableApp is WmbApp {
         address from,
         bytes memory _reason
     ) internal virtual {
-        failedMessages[messageId] = keccak256(data);
+        failedMessages[messageId] = keccak256(abi.encodePacked(data, messageId, fromChainId, from));
         emit MessageFailed(messageId, fromChainId, from, data, _reason);
     }
 

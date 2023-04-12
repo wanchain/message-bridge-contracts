@@ -96,7 +96,14 @@ describe("WmbRetryableApp", function () {
     expect(decodedEvent.name).to.equal('MessageFailed');
 
     let hash = await wmbReceiver.failedMessages(messageId);
-    expect(hash).to.equal(keccak256(messageData));
+
+    const retryHash = keccak256(
+      solidityPack(
+        ["bytes", "bytes32", "uint256", "address"],
+        [messageData, messageId, sourceChainId, sourceContract]
+      )
+    );
+    expect(hash).to.equal(retryHash);
 
     ret = await wmbReceiver.retryMessage(messageData, messageId, sourceChainId, sourceContract);
     ret = await ret.wait();
@@ -165,7 +172,13 @@ describe("WmbRetryableApp", function () {
     expect(decodedEvent.name).to.equal('MessageFailed');
 
     let hash = await wmbReceiver.failedMessages(messageId);
-    expect(hash).to.equal(keccak256(messageData));
+    const retryHash = keccak256(
+      solidityPack(
+        ["bytes", "bytes32", "uint256", "address"],
+        [messageData, messageId, sourceChainId, sourceContract]
+      )
+    );
+    expect(hash).to.equal(retryHash);
 
     ret = await wmbReceiver.dropMessage(messageId);
     ret = await ret.wait();

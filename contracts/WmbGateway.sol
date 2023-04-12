@@ -96,7 +96,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         require(msg.value <= maxGasLimit * baseFees[toChainId], "WmbGateway: Fee too large");
         
         uint gasLimit = _getGasLimitFromValue(toChainId);
-        messageId = _sendMessage(toChainId, to, data);
+        messageId = _getMessageId(toChainId, to, data);
         messageGasLimit[messageId] = gasLimit;
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
     }
@@ -109,7 +109,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         uint gasLimit = _getGasLimitFromValue(toChainId);
 
         for (uint256 i = 0; i < length; i++) {
-            bytes32 subId = _sendMessage(toChainId, messages[i].to, messages[i].data);
+            bytes32 subId = _getMessageId(toChainId, messages[i].to, messages[i].data);
             if (i == 0) {
                 messageId = subId;
             } else {
@@ -272,7 +272,15 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         uint endTime;
         (,status,,,,curveID,,PK,,startTime,endTime) = IWanchainMPC(wanchainStoremanAdminSC).getStoremanGroupConfig(smgID);
 
-        require(status == uint8(GroupStatus.ready) && block.timestamp >= startTime && block.timestamp <= endTime, "WmbGateway: SMG is not ready");
+        if (!(status == uint8(GroupStatus.ready) && block.timestamp >= startTime && block.timestamp <= endTime)) {
+            revert StoremanGroupNotReady({
+                smgID: smgID,
+                status: uint256(status),
+                timestamp: block.timestamp,
+                startTime: startTime,
+                endTime: endTime
+            });
+        }
 
         return (curveID, PK);
     }
@@ -306,7 +314,14 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         bytes32 Ry = _bytesToBytes32(sig.r, 32);
 
         // Verify the signature using the Wanchain MPC contract
-        require(IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.sigHash), "WmbGateway: Signature verification failed");
+        if (!IWanchainMPC(signatureVerifier).verify(curveID, sig.s, PKx, PKy, Rx, Ry, sig.sigHash)) {
+            revert SignatureVerifyFailed({
+                smgID: sig.smgID,
+                sigHash: sig.sigHash,
+                r: sig.r,
+                s: sig.s
+            });
+        }
     }
 
     function _getGasLimitFromValue(uint256 toChain) internal view returns (uint256) {
@@ -316,7 +331,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         return msg.value / baseFees[toChain];
     }
 
-    function _sendMessage(
+    function _getMessageId(
         uint256 targetChainId,
         address targetContract,
         bytes calldata messageData
