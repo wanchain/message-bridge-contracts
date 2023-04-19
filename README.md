@@ -19,7 +19,6 @@ WMB App is a smart contract that can be inherited by third-party DApps to intera
 WMB Retryable App is a smart contract that can be inherited by third-party DApps to interact with the WMB Gateway. It provides a customizable interface for interacting with the WMB Gateway and handling incoming messages. It also provides a retry mechanism for handling failed messages.
 
 
-
 ## Compile & Test
 
 1): export PK

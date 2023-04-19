@@ -11,7 +11,7 @@ contract PingPong is WmbApp {
         initialize(admin, _wmbGateway);
     }
 
-    // access ether fee transfer into. 
+    // Transfer in enough native coin for fee. 
     receive() external payable {}
 
     function _wmbReceive(
