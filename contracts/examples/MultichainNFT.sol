@@ -12,12 +12,21 @@ interface IChainID {
 }
 
 contract MultichainNFT is WmbApp, ERC721, ERC721URIStorage, ERC721Burnable, Ownable {
+    mapping(uint => address) public dstChainNftSC;
+
     constructor(address admin, address _wmbGateway) WmbApp() ERC721("MultichainNFT", "MCT") {
         initialize(admin, _wmbGateway);
     }
 
     // Transfer in enough native coin for fee.
     receive() external payable {}
+
+    function configDstSc(
+        uint dstChainId,
+        address dstSc
+    ) external onlyOwner {
+        dstChainNftSC[dstChainId] = dstSc;
+    }
 
     /**
      * Mint NFT to dstChainId
@@ -74,10 +83,12 @@ contract MultichainNFT is WmbApp, ERC721, ERC721URIStorage, ERC721Burnable, Owna
             _safeMint(to, tokenId);
             _setTokenURI(tokenId, uri);
         } else {
+            require(dstChainNftSC[dstChainId] != address(0), "MultichainNFT: dstChainNftSC not exists");
+
             uint fee = estimateFee(dstChainId, 1_000_000);
             _dispatchMessage(
                 dstChainId,
-                to,
+                dstChainNftSC[dstChainId],
                 abi.encode(
                     to,
                     tokenId,
