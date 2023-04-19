@@ -44,8 +44,8 @@ contract MockRetryableApp is WmbRetryableApp {
         uint256 toChainId,
         address to,
         bytes calldata data
-    ) public {
-        bytes32 messageId = _dispatchMessage(toChainId, to, data);
+    ) public payable {
+        bytes32 messageId = _dispatchMessage(toChainId, to, data, msg.value);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }
@@ -53,8 +53,8 @@ contract MockRetryableApp is WmbRetryableApp {
     function dispatchMessageBatch(
         uint256 toChainId,
         Message[] calldata messages
-    ) public {
-        bytes32 messageId = _dispatchMessageBatch(toChainId, messages);
+    ) public payable {
+        bytes32 messageId = _dispatchMessageBatch(toChainId, messages, msg.value);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }

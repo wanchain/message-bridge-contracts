@@ -45,7 +45,7 @@ contract MockApp is WmbApp {
         address to,
         bytes calldata data
     ) public payable {
-        bytes32 messageId = _dispatchMessage(toChainId, to, data);
+        bytes32 messageId = _dispatchMessage(toChainId, to, data, msg.value);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }
@@ -54,7 +54,7 @@ contract MockApp is WmbApp {
         uint256 toChainId,
         Message[] calldata messages
     ) public payable {
-        bytes32 messageId = _dispatchMessageBatch(toChainId, messages);
+        bytes32 messageId = _dispatchMessageBatch(toChainId, messages, msg.value);
         sentMessages[sentCount] = messageId;
         sentCount++;
     }

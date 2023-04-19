@@ -98,9 +98,10 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
     function _dispatchMessage(
         uint toChainId,
         address to,
-        bytes calldata data
+        bytes memory data,
+        uint fee
     ) virtual internal returns (bytes32) {
-        return IWmbGateway(wmbGateway).dispatchMessage{value: msg.value}(toChainId, to, data);
+        return IWmbGateway(wmbGateway).dispatchMessage{value: fee}(toChainId, to, data);
     }
 
     /**
@@ -109,7 +110,7 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
      * @param messages Messages data
      * @return messageId Message ID
      */
-    function _dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) virtual internal returns (bytes32) {
-        return IWmbGateway(wmbGateway).dispatchMessageBatch{value: msg.value}(toChainId, messages);
+    function _dispatchMessageBatch(uint256 toChainId, Message[] memory messages, uint fee) virtual internal returns (bytes32) {
+        return IWmbGateway(wmbGateway).dispatchMessageBatch{value: fee}(toChainId, messages);
     }
 }

@@ -20,3 +20,18 @@ WMB Retryable App is a smart contract that can be inherited by third-party DApps
 
 
 
+## Compile & Test
+
+1): export PK
+  
+  ```bash
+  export PK=0x...
+  ```
+
+2): run test
+
+  ```bash
+  $ yarn hardhat compile
+  $ yarn hardhat test
+  ```
+
