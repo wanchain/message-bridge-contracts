@@ -7,21 +7,16 @@
 const hre = require("hardhat");
 
 async function main() {
-  const currentTimestampInSeconds = Math.round(Date.now() / 1000);
-  const unlockTime = currentTimestampInSeconds + 60;
+  const WmbGateway = await hre.ethers.getContractFactory("WmbGateway");
+  const wmbGateway = await WmbGateway.deploy();
+  await wmbGateway.deployed();
+  console.log("WmbGateway deployed to:", wmbGateway.address);
 
-  const lockedAmount = hre.ethers.utils.parseEther("0.001");
+  const MockApp = await hre.ethers.getContractFactory("MockApp");
+  const mockApp = await MockApp.deploy('0x4Cf0A877E906DEaD748A41aE7DA8c220E4247D9e', wmbGateway.address);
+  await mockApp.deployed();
+  console.log("MockApp deployed to:", mockApp.address);
 
-  const Lock = await hre.ethers.getContractFactory("Lock");
-  const lock = await Lock.deploy(unlockTime, { value: lockedAmount });
-
-  await lock.deployed();
-
-  console.log(
-    `Lock with ${ethers.utils.formatEther(
-      lockedAmount
-    )}ETH and unlock timestamp ${unlockTime} deployed to ${lock.address}`
-  );
 }
 
 // We recommend this pattern to be able to use async/await everywhere
