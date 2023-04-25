@@ -7,22 +7,27 @@ module.exports = {
     timeout: 100000000
   },
   networks: {
-    // wanchainTestnet: {
-    //   url: "https://gwan-ssl.wandevs.org:46891",
-    //   accounts: [process.env.PK],
-    //   chainId: 999,
-    //   gasPrice: 2e9,
-    //   gas: 30000000,
-    // },
-    // wanchainMainnet: {
-    //   url: "https://gwan-ssl.wandevs.org:56891",
-    //   accounts: [process.env.PK],
-    //   chainId: 999,
-    //   gasPrice: 2e9,
-    // },
-    // goerli: {
-    //   url: 'https://rpc.ankr.com/eth_goerli',
-    //   accounts: [process.env.PK],
-    // },
+    wanchainTestnet: {
+      url: "https://gwan-ssl.wandevs.org:46891",
+      accounts: [process.env.PK],
+      chainId: 999,
+      gasPrice: 2e9,
+      gas: 30000000,
+    },
+    wanchainMainnet: {
+      url: "https://gwan-ssl.wandevs.org:56891",
+      accounts: [process.env.PK],
+      chainId: 999,
+      gasPrice: 2e9,
+    },
+    goerli: {
+      url: 'https://rpc.ankr.com/eth_goerli',
+      accounts: [process.env.PK],
+    },
+    fuji: {
+      url: 'https://ava-testnet.public.blastapi.io/ext/bc/C/rpc',
+      accounts: [process.env.PK],
+      chainId: 43113,
+    }
   }
 };
