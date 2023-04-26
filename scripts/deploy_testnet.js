@@ -95,7 +95,7 @@ async function main() {
   console.log('WmbGatewayProxy batchSetBaseFees');
 
   const MockApp = await hre.ethers.getContractFactory("MockApp");
-  const mockApp = await MockApp.deploy(ADMIN, wmbGateway.address);
+  const mockApp = await MockApp.deploy(ADMIN, wmbGatewayProxy.address);
   await mockApp.deployed();
   console.log("MockApp deployed to:", mockApp.address);
 
