@@ -29,5 +29,8 @@ module.exports = {
       accounts: [process.env.PK],
       chainId: 43113,
     }
+  },
+  etherscan: {
+    apiKey: process.env.ETHERSCAN_API_KEY
   }
 };
