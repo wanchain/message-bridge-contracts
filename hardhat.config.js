@@ -28,7 +28,11 @@ module.exports = {
       url: 'https://ava-testnet.public.blastapi.io/ext/bc/C/rpc',
       accounts: [process.env.PK],
       chainId: 43113,
-    }
+    },
+    xdcTestnet: {
+      url: 'https://erpc.apothem.network',
+      accounts: [process.env.PK],
+    },
   },
   etherscan: {
     apiKey: process.env.ETHERSCAN_API_KEY
