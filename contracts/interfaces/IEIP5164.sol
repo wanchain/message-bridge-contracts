@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity ^0.8.0;
 
 // EIP-5164 defines a cross-chain execution interface for EVM-based blockchains. 
 // Implementations of this specification will allow contracts on one chain to call contracts on another by sending a cross-chain message.
