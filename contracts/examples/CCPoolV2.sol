@@ -5,7 +5,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../app/WmbApp.sol";
 
 // Cross Chain Token Pool
-contract CCPool is WmbApp {
+contract CCPoolV2 is WmbApp {
     address public poolToken;
 
     // chain id => remote pool address
