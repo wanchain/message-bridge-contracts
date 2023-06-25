@@ -21,16 +21,42 @@ WMB Retryable App is a smart contract that can be inherited by third-party DApps
 
 ## Compile & Test
 
-1): export PK
-  
-  ```bash
-  export PK=0x...
-  ```
+```
+// SPDX-License-Identifier: MIT
+pragma solidity 0.8.18;
+import "@wandevs/message/contracts/app/WmbApp.sol";
 
-2): run test
+contract MyContract is WmbApp {
+    
+    constructor(address admin, address _wmbGateway) WmbApp() {
+        initialize(admin, _wmbGateway);
+        // 你的初始化代码
+    }
 
-  ```bash
-  $ yarn hardhat compile
-  $ yarn hardhat test
-  ```
+    function _wmbReceive(
+        bytes calldata data,
+        bytes32 messageId,
+        uint256 fromChainId,
+        address fromSC
+    ) internal override {
+		// do something you want...
+    }
 
+    function sendMessage(
+        uint256 toChainId, address toAddress, 
+        bytes memory msgData, uint256 gasLimit) public payable {
+        uint256 fee = estimateFee(toChainId, gasLimit);
+        require(msg.value >= fee, "Insufficient fee");
+        _dispatchMessage(toChainId, toAddress, msgData, msg.value);
+    }
+
+    function sendMessageBatch(
+        uint256 toChainId, Message[] memory messages, uint256 gasLimit) 
+        public payable {
+        uint256 fee = estimateFee(toChainId, gasLimit);
+        require(msg.value >= fee, "Insufficient fee");
+        _dispatchMessageBatch(toChainId, messages, msg.value);
+    }
+}
+
+```
