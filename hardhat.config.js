@@ -17,8 +17,9 @@ module.exports = {
     wanchainMainnet: {
       url: "https://gwan-ssl.wandevs.org:56891",
       accounts: [process.env.PK],
-      chainId: 999,
+      chainId: 888,
       gasPrice: 2e9,
+      gas: 30000000,
     },
     goerli: {
       url: 'https://rpc.ankr.com/eth_goerli',
