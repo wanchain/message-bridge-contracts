@@ -1,5 +1,5 @@
 {
-  "name": "wanchain-message-bridge",
+  "name": "@wandevs/message",
   "description": "Wanchain Message Bridge",
   "version": "0.1.0",
   "repository": "https://github.com/wanchain/message-bridge-contracts.git",
