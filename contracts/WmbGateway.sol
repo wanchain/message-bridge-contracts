@@ -296,7 +296,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     function registerCustomVerifier(address verifier) external {
         registeredSignatureVerifier[msg.sender] = verifier;
-        emit RegisterVerifier(msg.sender, verifier);
+        emit RegisterCustomVerifier(msg.sender, verifier);
     }
 
     /**
