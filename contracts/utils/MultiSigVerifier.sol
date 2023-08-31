@@ -7,7 +7,6 @@ contract MultiSigVerifier {
     using EnumerableSet for EnumerableSet.AddressSet;
  
     EnumerableSet.AddressSet private owners;
-    EnumerableSet.AddressSet private signers;
 
     uint256 public threshold;
 
@@ -68,24 +67,22 @@ contract MultiSigVerifier {
     /// @dev verifies signatures
     /// @param dataHash hash of the data to be verified
     /// @param signatures concatenated rsv signatures, format {bytes32 r}{bytes32 s}{uint8 v}
-    function verify(bytes32 dataHash, bytes memory signatures) public returns (bool) {
+    function verify(bytes32 dataHash, bytes memory signatures) public view returns (bool) {
         uint256 count = signatures.length / 65;
         require(count >= threshold, "insufficient signatures");
+        address[] memory signers = new address[](count);
+
         for (uint256 i = 0; i < count; i++) {
             (uint8 v, bytes32 r, bytes32 s) = signatureSplit(signatures, i);
             address signer = ecrecover(dataHash, v, r, s);
             require(owners.contains(signer), "invalid signer");
-            require(!signers.contains(signer), "duplicate signer");
-            signers.add(signer);
+            // check duplicate signer
+            for (uint256 j = 0; j < i; j++) {
+                require(signers[j] != signer, "duplicate signer");
+            }
+            signers[i] = signer;
         }
-        bool success = signers.length() >= threshold;
-
-        // clear signers 
-        for (uint256 i = 0; i < signers.length(); i++) {
-            signers.remove(signers.at(i));
-        }
-
-        return success;
+        return true;
     }
 
     /// @dev divides bytes signature into `uint8 v, bytes32 r, bytes32 s`.
