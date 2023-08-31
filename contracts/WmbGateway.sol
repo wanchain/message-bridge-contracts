@@ -208,7 +208,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             messages
         ));
 
-        address ret = IsToContractSame(messages);
+        address ret = isToContractSame(messages);
         if (ret != address(0) && registeredSignatureVerifier[ret] != address(0)) {
             address verifier = registeredSignatureVerifier[ret];
             if (!IWmbVerifier(verifier).verify(sigHash, r)) {
@@ -239,7 +239,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         );
     }
 
-    function IsToContractSame(Message[] calldata messages) internal pure returns (address) {
+    function isToContractSame(Message[] calldata messages) internal pure returns (address) {
         uint length = messages.length;
         address toContract = messages[0].to;
         for (uint256 i = 1; i < length; i++) {
