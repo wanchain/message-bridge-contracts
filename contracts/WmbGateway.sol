@@ -50,7 +50,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     mapping(uint256 => bool) public supportedDstChains;
 
     // registered signature verifier
-    mapping(address => address) public registeredSignatureVerifier;
+    mapping(address => address) public customVerifier;
 
     struct ReceiveMsgData {
         uint256 sourceChainId;
@@ -158,7 +158,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             messageData
         ));
 
-        if (registeredSignatureVerifier[targetContract] == address(0)) {
+        if (customVerifier[targetContract] == address(0)) {
             // verify signature
             _verifyMpcSignature(
                 SigData(
@@ -166,7 +166,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
                 )
             );
         } else {
-            address verifier = registeredSignatureVerifier[targetContract];
+            address verifier = customVerifier[targetContract];
             if (!IWmbVerifier(verifier).verify(sigHash, r)) {
                 revert SignatureVerifyFailed({
                     smgID: smgID,
@@ -209,8 +209,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         ));
 
         address ret = isToContractSame(messages);
-        if (ret != address(0) && registeredSignatureVerifier[ret] != address(0)) {
-            address verifier = registeredSignatureVerifier[ret];
+        if (ret != address(0) && customVerifier[ret] != address(0)) {
+            address verifier = customVerifier[ret];
             if (!IWmbVerifier(verifier).verify(sigHash, r)) {
                 revert SignatureVerifyFailed({
                     smgID: smgID,
@@ -295,7 +295,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     }
 
     function registerCustomVerifier(address verifier) external {
-        registeredSignatureVerifier[msg.sender] = verifier;
+        customVerifier[msg.sender] = verifier;
         emit RegisterCustomVerifier(msg.sender, verifier);
     }
 
