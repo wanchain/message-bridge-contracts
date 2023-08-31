@@ -78,6 +78,10 @@ interface IWmbGateway is IEIP5164 {
         bytes32 s
     ) external;
 
+    function registerVerifier(address verifier) external;
+
+    event RegisterVerifier(address indexed receiver, address verifier);
+
     error SignatureVerifyFailed(
         bytes32 smgID,
         bytes32 sigHash,

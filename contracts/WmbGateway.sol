@@ -10,6 +10,7 @@ import "./interfaces/IWmbGateway.sol";
 import "./interfaces/IWmbConfig.sol";
 import "./interfaces/IWanchainMPC.sol";
 import "./interfaces/IWmbReceiver.sol";
+import "./interfaces/IWmbVerifier.sol";
 
 /**
  * @title WmbGateway
@@ -47,6 +48,9 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     // Mapping of target chain IDs to supported status
     mapping(uint256 => bool) public supportedDstChains;
+
+    // registered signature verifier
+    mapping(address => address) public registeredSignatureVerifier;
 
     struct ReceiveMsgData {
         uint256 sourceChainId;
@@ -154,12 +158,24 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             messageData
         ));
 
-        // verify signature
-        _verifyMpcSignature(
-            SigData(
-                sigHash, smgID, r, s
-            )
-        );
+        if (registeredSignatureVerifier[targetContract] == address(0)) {
+            // verify signature
+            _verifyMpcSignature(
+                SigData(
+                    sigHash, smgID, r, s
+                )
+            );
+        } else {
+            address verifier = registeredSignatureVerifier[targetContract];
+            if (!IWmbVerifier(verifier).verify(sigHash, smgID, r, s)) {
+                revert SignatureVerifyFailed({
+                    smgID: smgID,
+                    sigHash: sigHash,
+                    r: r,
+                    s: s
+                });
+            }
+        }
 
         _receiveMessage(
             messageId,
@@ -252,6 +268,11 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         for (uint256 i = 0; i < targetChainIds.length; i++) {
             supportedDstChains[targetChainIds[i]] = supported[i];
         }
+    }
+
+    function registerVerifier(address verifier) external {
+        registeredSignatureVerifier[msg.sender] = verifier;
+        emit RegisterVerifier(msg.sender, verifier);
     }
 
     /**
