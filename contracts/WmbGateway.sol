@@ -208,12 +208,25 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             messages
         ));
 
-        // verify signature
-        _verifyMpcSignature(
-            SigData(
-                sigHash, smgID, r, s
-            )
-        );
+        address ret = IsToContractSame(messages);
+        if (ret != address(0) && registeredSignatureVerifier[ret] != address(0)) {
+            address verifier = registeredSignatureVerifier[ret];
+            if (!IWmbVerifier(verifier).verify(sigHash, r)) {
+                revert SignatureVerifyFailed({
+                    smgID: smgID,
+                    sigHash: sigHash,
+                    r: r,
+                    s: s
+                });
+            }
+        } else {
+            // verify signature
+            _verifyMpcSignature(
+                SigData(
+                    sigHash, smgID, r, s
+                )
+            );
+        }
 
         _receiveBatchMessage(
             messageId,
@@ -224,6 +237,17 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
                 gasLimit
             )
         );
+    }
+
+    function IsToContractSame(Message[] calldata messages) internal pure returns (address) {
+        uint length = messages.length;
+        address toContract = messages[0].to;
+        for (uint256 i = 1; i < length; i++) {
+            if (toContract != messages[i].to) {
+                return address(0);
+            }
+        }
+        return toContract;
     }
 
     /**
