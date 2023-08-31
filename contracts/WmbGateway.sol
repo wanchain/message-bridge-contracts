@@ -167,7 +167,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             );
         } else {
             address verifier = registeredSignatureVerifier[targetContract];
-            if (!IWmbVerifier(verifier).verify(sigHash, smgID, r, s)) {
+            if (!IWmbVerifier(verifier).verify(sigHash, r)) {
                 revert SignatureVerifyFailed({
                     smgID: smgID,
                     sigHash: sigHash,
