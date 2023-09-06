@@ -19,4 +19,12 @@ contract MockMPC is IWanchainMPC {
     ) external override pure returns (bool) {
         return true;
     }
+
+    function getPartners() external pure returns(address tokenManager, address smgAdminProxy, address smgFeeProxy, address quota, address sigVerifier) {
+        return (address(0), address(0), address(0), address(0), address(0));
+    }
+    
+    function currentChainID() external pure returns (uint256) {
+        return 1;
+    }
 }

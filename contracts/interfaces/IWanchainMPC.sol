@@ -53,4 +53,8 @@ interface IWanchainMPC {
         bytes32 randomPointY,
         bytes32 message
     ) external returns (bool);
+
+    function getPartners() external view returns(address tokenManager, address smgAdminProxy, address smgFeeProxy, address quota, address sigVerifier);
+    
+    function currentChainID() external view returns (uint256);
 }
