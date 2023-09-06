@@ -55,20 +55,6 @@ const feeInfo = {
   },
 }
 
-// supported dst chains and base fee
-let supporedChainIds = Object.keys(SMG_PROXY);
-
-let supportedDstChains = {};
-supporedChainIds.map((chainId) => {
-  supportedDstChains[chainId] = {
-    baseFee: (feeInfo[chainId].coinPriceUsd * feeInfo[chainId].gasPrice / feeInfo[bip44_chainId].coinPriceUsd).toFixed(0),
-  };
-});
-
-console.log('supportedDstChains', supportedDstChains);
-
-// remove current chain from supportedDstChains
-delete supportedDstChains[bip44_chainId];
 
 async function main() {
   let deployer = (await hre.ethers.getSigner()).address;

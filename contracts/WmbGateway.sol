@@ -80,7 +80,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         address _signatureVerifierCross;
         (, _oracleCross, , , _signatureVerifierCross) = IWanchainMPC(_cross).getPartners();
         uint _chainId = IWanchainMPC(_cross).currentChainID();
-        require(chainId != 0, "chainId is empty");
+        require(_chainId != 0, "chainId is empty");
 
         IWanchainMPC(_cross).getPartners();
         chainId = _chainId;
