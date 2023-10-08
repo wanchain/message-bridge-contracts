@@ -1,0 +1,24 @@
+version: '3.8'
+
+# Sandbox environment for testing
+services:
+  chain1:
+    build: 
+      context: .
+    ports:
+      - "18545:18545"
+    command: ["./sandbox/startChain1.sh"]
+
+  chain2:
+    build: 
+      context: .
+    ports:
+      - "28545:28545"
+    command: ["./sandbox/startChain2.sh"]
+
+  # wmb-agent:
+  #   build: 
+  #     context: .
+  #   environment:
+  #   command: ["yarn", "hardhat", "node", "--config", "./hardhat.chain2.config.js"]
+
