@@ -166,4 +166,4 @@ The WmbGateway address and bip44chainId information was shown in the information
 
 You can use the WmbGateway address and bip44chainId information to deploy your own contracts.
 
-
+* P.S. After resetting the sandbox environment, you may need to re-add the MetaMask network in order for block height verification to pass.
