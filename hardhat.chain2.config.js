@@ -19,5 +19,5 @@ module.exports = {
         accountsBalance: "1000000000000000000000000",
       },
     }
-  }
+  },
 };

@@ -18,6 +18,18 @@ module.exports = {
         path: "m/44'/60'/0'/0",
         accountsBalance: "1000000000000000000000000",
       },
-    }
+    },
+    chain1: {
+      bip44ChainId: 1,
+      chainId: 8888,
+      url: "http://localhost:18545",
+      accounts: ["0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2"]
+    },
+    chain2: {
+      bip44ChainId: 2,
+      chainId: 9999,
+      url: "http://localhost:28545",
+      accounts: ["0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2"]
+    },
   }
 };

@@ -9,7 +9,7 @@ const hre = require("hardhat");
 // admin address 
 const ADMIN = '0x5098E730Ca399634a0513b31ae12F26D405ecafd';
 // current chain bip44 chainId
-const bip44_chainId = "1";
+const BIP44_CHAIN_ID = hre.network.config.bip44ChainId
 
 async function main() {
   let deployer = (await hre.ethers.getSigner()).address;
@@ -19,8 +19,13 @@ async function main() {
   await wmbGateway.deployed();
   console.log("WmbGateway deployed to:", wmbGateway.address);
   const MockMPC = await hre.ethers.getContractFactory("MockMPC");
-  const mockMPC = await MockMPC.deploy();
+  const mockMPC = await MockMPC.deploy(BIP44_CHAIN_ID);
   await mockMPC.deployed();
+  console.log("MockMPC deployed to:", mockMPC.address);
+
+  await wmbGateway.initialize(ADMIN, mockMPC.address);
+  await wmbGateway.setSupportedDstChains([1,2], [true, true]);
+  await wmbGateway.batchSetBaseFees([1,2], ["1000000000", "1000000000"]);
 
   console.log('done!');
 }

@@ -2,23 +2,25 @@ version: '3.8'
 
 # Sandbox environment for testing
 services:
-  chain1:
+  wmb-chain1:
+    container_name: wmb-chain1
     build: 
       context: .
     ports:
       - "18545:18545"
-    command: ["./sandbox/startChain1.sh"]
+    command: ["yarn", "hardhat", "node", "--config", "./hardhat.chain1.config.js", "--port", "18545"]
 
-  chain2:
+  wmb-chain2:
+    container_name: wmb-chain2
     build: 
       context: .
     ports:
       - "28545:28545"
-    command: ["./sandbox/startChain2.sh"]
+    command: ["yarn", "hardhat", "node", "--config", "./hardhat.chain2.config.js", "--port", "28545"]
 
-  # wmb-agent:
-  #   build: 
-  #     context: .
-  #   environment:
-  #   command: ["yarn", "hardhat", "node", "--config", "./hardhat.chain2.config.js"]
+  wmb-agent:
+    container_name: wmb-agent
+    build: 
+      context: .
+    command: ["echo", "WMB Agent is running"]
 

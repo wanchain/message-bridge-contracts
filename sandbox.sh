@@ -35,6 +35,18 @@ echo -e "${GREEN}Starting dockers please wait...${NC}"
 # Starting docker
 docker-compose up -d
 
+echo
+
+echo -e "${GREEN}Deploying WmbGateway contracts, please wait...${NC}"
+
+yarn
+
+yarn hardhat --config ./hardhat.chain1.config.js --network chain1 run ./scripts/deploy_sandbox.js
+
+yarn hardhat --config ./hardhat.chain1.config.js --network chain2 run ./scripts/deploy_sandbox.js
+
+echo
+
 # Displaying RPC and chainId info
 echo -e "${BLUE}EVM Chain Information:${NC}"
 echo -e "chain1:\n- bip44chainId: 1 \n- rpc: http://127.0.0.1:18545\n- chainId: 8888\n- symbol: ETH"
@@ -57,7 +69,22 @@ echo -e "4)\t0x98581aEfe58265594aF5f54A5adc4Be0db2704F8\t0x6e6dc8e8f58f6829392ba
 # echo -e "5)\t0x5098E730Ca399634a0513b31ae12F26D405ecafd\t0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2" # for agent use only
 echo 
 
-# Added Instructions
-echo -e "${BLUE}If you want to stop the Sandbox, please use the '${GREEN}docker-compose stop${BLUE}' command.${NC}"
-echo -e "${BLUE}If you want to remove the Sandbox, please use the '${GREEN}docker-compose down -v${BLUE}' command.${NC}"
-echo -e "${BLUE}To see the stopped containers, use '${GREEN}docker ps -a${BLUE}'. To remove a container, use '${RED}docker rm <containerId>${BLUE}'.${NC}"
+
+# Define a function to handle SIGINT
+handle_sigint() {
+    echo
+    echo -e "${BLUE}Cleaning up the sandbox environment...${NC}"
+    docker-compose down
+    # docker rm wmb-chain1 wmb-chain2 wmb-agent
+    exit 0
+}
+
+# Use the trap command to capture SIGINT and call the handle_sigint function
+trap handle_sigint SIGINT
+
+echo -e "${GREEN}* Press ${RED}Ctrl+C ${GREEN}to terminate and clean up the sandbox environment.${NC}"
+
+# Use an infinite loop to keep the script running, waiting for the user to press Ctrl+C
+while true; do
+    sleep 1
+done
