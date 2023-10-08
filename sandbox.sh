@@ -41,12 +41,18 @@ echo -e "${GREEN}Deploying WmbGateway contracts, please wait...${NC}"
 
 yarn
 
+sleep 5
+
 yarn hardhat --config ./hardhat.chain1.config.js --network chain1 run ./scripts/deploy_sandbox.js
 
 yarn hardhat --config ./hardhat.chain1.config.js --network chain2 run ./scripts/deploy_sandbox.js
 
 echo
 
+echo -e "${GREEN}**********************************************${NC}"
+echo -e "${GREEN}********Sandbox environment is ready!*********${NC}"
+echo -e "${GREEN}**********************************************${NC}"
+echo
 # Displaying RPC and chainId info
 echo -e "${BLUE}EVM Chain Information:${NC}"
 echo -e "chain1:\n- bip44chainId: 1 \n- rpc: http://127.0.0.1:18545\n- chainId: 8888\n- symbol: ETH"
@@ -56,7 +62,7 @@ echo -e "chain2:\n- bip44chainId: 2 \n- rpc: http://127.0.0.1:28545\n- chainId: 
 echo 
 
 # Displaying WmbGateway contract address
-echo -e "${GREEN}WmbGateway Contract Address: XXXXXXX (You can update this later)${NC}"
+echo -e "${GREEN}WmbGateway Contract Address: ${RED}0xa383F3CDA8E2558AD843A288f468cA5D60ab686f ${NC}"
 echo 
 
 # Displaying built-in test account information
