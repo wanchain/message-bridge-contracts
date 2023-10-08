@@ -27,6 +27,17 @@ async function main() {
   await wmbGateway.setSupportedDstChains([1,2], [true, true]);
   await wmbGateway.batchSetBaseFees([1,2], ["1000000000", "1000000000"]);
 
+  let MCToken = await hre.ethers.getContractFactory("MCToken");
+  let mcToken = await MCToken.deploy("MCToken", "MCT", "1000000000000000000000000000", ADMIN, wmbGateway.address);
+  await mcToken.deployed();
+  console.log("Mock Cross Chain Token deployed to:", mcToken.address);
+  await mcToken.transfer("0x4E8a30f0db26251E992a8937099051F76a517117", "1000000000000000000000000");
+  await mcToken.transfer("0x65D6A6b2De385Db524410BE169067A114704D868", "1000000000000000000000000");
+  await mcToken.transfer("0x139280C8144959673AEc076842Fb1E6c560edE62", "1000000000000000000000000");
+  await mcToken.transfer("0x98581aEfe58265594aF5f54A5adc4Be0db2704F8", "1000000000000000000000000");
+
+  await mcToken.setTrustedRemotes([1,2], [mcToken.address, mcToken.address], [true, true]);
+
   console.log('done!');
 }
 

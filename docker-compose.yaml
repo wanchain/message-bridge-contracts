@@ -22,5 +22,5 @@ services:
     container_name: wmb-agent
     build: 
       context: .
-    command: ["echo", "WMB Agent is running"]
+    command: ["node", "./sandbox/agent.js"]
 

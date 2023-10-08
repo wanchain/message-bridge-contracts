@@ -9,7 +9,7 @@ module.exports = {
       chainId: 8888,
       mining: {
         auto: true,
-        interval: 5000
+        // interval: 5000
       },
       accounts: {
         mnemonic: "rule guard corn kidney giraffe town beef comic exercise shift depend arch",
@@ -23,13 +23,13 @@ module.exports = {
       bip44ChainId: 1,
       chainId: 8888,
       url: "http://localhost:18545",
-      accounts: ["0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2"]
+      accounts: ["0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2"] // Sandbox PRIVATE_KEY do not use in production
     },
     chain2: {
       bip44ChainId: 2,
       chainId: 9999,
       url: "http://localhost:28545",
-      accounts: ["0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2"]
+      accounts: ["0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2"] // Sandbox PRIVATE_KEY do not use in production
     },
   }
 };

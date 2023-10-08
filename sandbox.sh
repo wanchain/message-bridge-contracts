@@ -63,10 +63,11 @@ echo
 
 # Displaying WmbGateway contract address
 echo -e "${GREEN}WmbGateway Contract Address: ${RED}0xa383F3CDA8E2558AD843A288f468cA5D60ab686f ${NC}"
+echo -e "${GREEN}Mock Cross Chain Token Address: ${RED}0xFac60b04D7Ade6de72d655413F5e029073baD621 ${NC}"
 echo 
 
 # Displaying built-in test account information
-echo -e "${BLUE}Built-in Test Account Information (Each address has 1,000,000 ETH):${NC}"
+echo -e "${BLUE}Built-in Test Account Information:${NC}"
 echo -e "id\tAddress\t\t\t\t\t\tPrivateKey"
 echo -e "1)\t0x4E8a30f0db26251E992a8937099051F76a517117\t0x00856f7a9716aff5f0e52f1832df145967537ddc75864cbdbe9f0a856def2f3f"
 echo -e "2)\t0x65D6A6b2De385Db524410BE169067A114704D868\t0x5f75902136cb4d3943c14cdcf9cbb9f293fdd7e47128e77db539d83492f84eb6"
@@ -74,7 +75,13 @@ echo -e "3)\t0x139280C8144959673AEc076842Fb1E6c560edE62\t0x3e9fff4ef6a895de9c329
 echo -e "4)\t0x98581aEfe58265594aF5f54A5adc4Be0db2704F8\t0x6e6dc8e8f58f6829392ba1e00e5fc1a9c6a48abd62d491381d3eeb996599ac02"
 # echo -e "5)\t0x5098E730Ca399634a0513b31ae12F26D405ecafd\t0xed90a083f22658db3b557a22832b5d719e65764eb3169053d96f6221725bbfd2" # for agent use only
 echo 
+echo -e "${BlUE}* Each address has 1,000,000 ETH and MCToken on chain1 and chain2${NC}"
+echo -e "${RED}* Don't use Sandbox built-in test accounts in production!${NC}"
+echo
 
+echo -e "You can run ${GREEN}node ./sandbox/test.js ${NC} in another shell window to test the MCT cross-chain in sandbox."
+echo
+echo 
 
 # Define a function to handle SIGINT
 handle_sigint() {
