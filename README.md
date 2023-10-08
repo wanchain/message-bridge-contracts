@@ -74,3 +74,7 @@ contract MyContract is WmbApp {
 }
 
 ```
+
+## Sandbox Environment
+
+Check [sandbox.md](./sandbox.md) for more details.
