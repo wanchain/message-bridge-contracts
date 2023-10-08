@@ -25,8 +25,8 @@ async function main() {
   console.log('Transfer 100 MCT from chain1 to chain2...');
   await mcToken1.crossTo(2, '0xFac60b04D7Ade6de72d655413F5e029073baD621', wallet2.address, ethers.utils.parseEther("100"), '300000', {value: '300000000000000'});
 
-  console.log('Wait for 10 seconds...');
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  console.log('Wait for 5 seconds...');
+  await new Promise(resolve => setTimeout(resolve, 50000));
 
   balance = await mcToken1.balanceOf(wallet1.address);
   console.log('wallet on chain1 MCT balance:', ethers.utils.formatEther(balance));
@@ -36,8 +36,8 @@ async function main() {
   console.log('Transfer 100 MCT from chain2 to chain1...');
   await mcToken2.crossTo(1, '0xFac60b04D7Ade6de72d655413F5e029073baD621', wallet1.address, ethers.utils.parseEther("100"), '300000', {value: '300000000000000'});
 
-  console.log('Wait for 10 seconds...');
-  await new Promise(resolve => setTimeout(resolve, 10000));
+  console.log('Wait for 5 seconds...');
+  await new Promise(resolve => setTimeout(resolve, 50000));
 
   balance = await mcToken1.balanceOf(wallet1.address);
   console.log('wallet on chain1 MCT balance:', ethers.utils.formatEther(balance));

@@ -1,7 +1,7 @@
 # Wanchain Message Bridge Sandbox Guide
-## Introduction
+## 1. Introduction
 This guide will walk you through the process of setting up a local sandbox environment for the Wanchain Message Bridge. The sandbox environment will allow you to test the bridge without having to deploy your own Wanchain and Ethereum nodes. The sandbox environment will also allow you to test the bridge without having to wait for block confirmations. The sandbox environment is not intended for production use. The sandbox environment is intended for testing and development purposes only.
-## Prerequisites
+## 2. Prerequisites
 * Docker
 * Docker Compose
 * Git
@@ -9,8 +9,8 @@ This guide will walk you through the process of setting up a local sandbox envir
 * NPM
 * yarn
 
-## Installation
-### Docker and Docker Compose
+## 3. Installation
+### 3.1 Docker and Docker Compose
 You have to install docker and docker-compose before use this sandbox environment. You can refer to [docker](https://docs.docker.com/install/) and [docker-compose](https://docs.docker.com/compose/install/) to install them.
 
 For example, install docker and docker-compose on Ubuntu:
@@ -31,7 +31,7 @@ Docker Compose version v2.22.0-desktop.2
 ```
 If you have installed docker and docker-compose, you can see the version of them.
 
-### Node.js and yarn
+### 3.2 Node.js and yarn
 Install node.js and yarn:
 ```bash
 # for Ubuntu
@@ -53,7 +53,7 @@ $ yarn -v
 ```
 If you have installed node.js and yarn, you can see the version of them.
 
-### Git
+### 3.3 Git
 Install git from website: [git](https://git-scm.com/downloads)
 
 Check git version:
@@ -62,20 +62,20 @@ $ git version
 git version 2.37.1 (Apple Git-137.1)
 ```
 
-### Clone the repository
+### 3.4 Clone the repository
 Clone the repository:
 ```bash
 $ git clone https://github.com/wanchain/message-bridge-contracts.git
 ```
 
-### Install dependencies
+### 3.5 Install dependencies
 Install dependencies:
 ```bash
 $ cd message-bridge-contracts
 $ yarn
 ```
 
-## Run the sandbox environment
+## 4. Run the sandbox environment
 Run the sandbox environment:
 ```bash
 $ ./sandbox.sh
@@ -138,9 +138,9 @@ The chain1 and chain2 have 1,000,000 ETH in the listed accounts.
 
 You can use the private key to import the account to your MetaMask wallet.
 
-## Test the bridge
+## 5. Test the Message Bridge in Sandbox
 
-Run the test script to test Sandbox Cross Chain Token transfer:
+Run the test script to test Sandbox Cross Chain Token transfer powered by Wanchain Message Bridge:
 ```bash
 $ node ./sandbox/test.js
 ```
@@ -161,7 +161,7 @@ wallet on chain2 MCT balance: 1000000.0
 done!
 ```
 
-## Deploy your own contracts
+## 6. Deploy your own contracts
 The WmbGateway address and bip44chainId information was shown in the information above.
 
 You can use the WmbGateway address and bip44chainId information to deploy your own contracts.
