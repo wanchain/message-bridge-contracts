@@ -91,7 +91,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         signatureVerifier = _signatureVerifierCross;
         wanchainStoremanAdminSC = _oracleCross;
 
-        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /**
