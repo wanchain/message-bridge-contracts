@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/access/AccessControl.sol";
-import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
+import "@openzeppelin/contracts@4.8.2/access/AccessControl.sol";
+import "@openzeppelin/contracts@4.8.2/proxy/utils/Initializable.sol";
 import "../interfaces/IWmbGateway.sol";
 import "../interfaces/IWmbReceiver.sol";
 
