@@ -1,7 +1,7 @@
 {
   "name": "@wandevs/message",
   "description": "Wanchain Message Bridge",
-  "version": "0.1.4",
+  "version": "0.2.0",
   "repository": "https://github.com/wanchain/message-bridge-contracts.git",
   "author": "Wanchain Foundation <techsupport@wanchain.org>",
   "license": "MIT",
