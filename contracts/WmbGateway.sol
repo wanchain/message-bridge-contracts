@@ -3,7 +3,6 @@ pragma solidity 0.8.18;
 
 import "@openzeppelin/contracts/access/AccessControl.sol";
 import "@openzeppelin/contracts/proxy/utils/Initializable.sol";
-import "@openzeppelin/contracts/proxy/transparent/ProxyAdmin.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "./interfaces/IWmbGateway.sol";
@@ -78,16 +77,25 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     enum GroupStatus { none, initial, curveSeted, failed, selected, ready, unregistered, dismissed }
     
 
-    function initialize(address admin, uint _chainId, address _signatureVerifier, address _wanchainStoremanAdminSC) public initializer {
+    function initialize(address admin, address _cross) public initializer {
+        require(admin != address(0), "WmbGateway: Invalid admin address");
         // Initialize the AccessControl module with the given admin
-        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        address _oracleCross;
+        address _signatureVerifierCross;
+        (, _oracleCross, , , _signatureVerifierCross) = IWanchainMPC(_cross).getPartners();
+        uint _chainId = IWanchainMPC(_cross).currentChainID();
+        require(_chainId != 0, "chainId is empty");
+
+        IWanchainMPC(_cross).getPartners();
         chainId = _chainId;
         maxGasLimit = 8_000_000;
         minGasLimit = 150_000;
-        defaultGasLimit = 2_000_000;
+        defaultGasLimit = 1_000_000;
         maxMessageLength = 10_000;
-        signatureVerifier = _signatureVerifier;
-        wanchainStoremanAdminSC = _wanchainStoremanAdminSC;
+        signatureVerifier = _signatureVerifierCross;
+        wanchainStoremanAdminSC = _oracleCross;
+
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
     }
 
     /**

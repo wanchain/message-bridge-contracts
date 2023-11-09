@@ -34,8 +34,22 @@ module.exports = {
       url: 'https://erpc.apothem.network',
       accounts: [process.env.PK],
     },
+    arbitrumGoerli: {
+      url: 'https://arbitrum-goerli.publicnode.com',
+      accounts: [process.env.PK],
+    },
+    optimisticGoerli: {
+      url: 'https://optimism-goerli.publicnode.com',
+      accounts: [process.env.PK],
+      gasPrice: 0.01e9,
+    },
+    polygonMumbai: {
+      url: 'https://polygon-mumbai-bor.publicnode.com',
+      accounts: [process.env.PK],
+    }
   },
   etherscan: {
-    apiKey: process.env.ETHERSCAN_API_KEY
+    apiKey: {
+    }
   }
 };

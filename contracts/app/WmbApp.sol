@@ -26,7 +26,7 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
      */
     function initialize(address admin, address _wmbGateway) virtual public initializer {
         // Initialize the AccessControl module with the given admin
-        _setupRole(DEFAULT_ADMIN_ROLE, admin);
+        _grantRole(DEFAULT_ADMIN_ROLE, admin);
         wmbGateway = _wmbGateway;
     }
 
