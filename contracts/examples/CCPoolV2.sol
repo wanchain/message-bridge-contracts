@@ -33,7 +33,7 @@ contract CCPoolV2 is WmbApp {
         remotePools[chainId] = remotePool;
     }
 
-    function crossTo(uint256 toChainId, address to, uint256 amount) public {
+    function crossTo(uint256 toChainId, address to, uint256 amount) public payable {
         require(remotePools[toChainId] != address(0), "remote pool not configured");
 
         IERC20(poolToken).transferFrom(msg.sender, address(this), amount);
