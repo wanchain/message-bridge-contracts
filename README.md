@@ -12,7 +12,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 
 ### Deployed SC address
 
-The current test network is using upgradeable contracts for convenient functionality upgrades and maintenance. The main network will use non-upgradeable contracts to ensure security.
+#### Testnet
 
 | Network | Contract Address |
 | --- | --- |
@@ -23,6 +23,19 @@ The current test network is using upgradeable contracts for convenient functiona
 | Arbitrum Goerli Testnet | [0x294B79d3D13DAb36C51C8E4Cf3c2Cd3948F0bA4C](https://testnet.arbiscan.io/address/0x294B79d3D13DAb36C51C8E4Cf3c2Cd3948F0bA4C) |
 | Optimism Goerli Testnet | [0x9B9492466F70e0dA0f4ef0aC27a53550B0769232](https://goerli-optimism.etherscan.io/address/0x9B9492466F70e0dA0f4ef0aC27a53550B0769232) |
 | Polygon Mumbai Testnet | [0x61F4aBa60A158E180521264a793fCb2901fCe998](https://mumbai.polygonscan.com/address/0x61F4aBa60A158E180521264a793fCb2901fCe998) |
+
+#### Mainnet
+
+| Network | Address | Bip44 chainId |
+| --- | --- | --- |
+| Polygon | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484614 |
+| BSC | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484362 |
+| Wanchain | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2153201998 |
+| Avalanche | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147492648 |
+| Optimism | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484262 |
+| Arbitrum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741826 |
+| Energi | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147493445 |
+
 
 ## WMB App
 
