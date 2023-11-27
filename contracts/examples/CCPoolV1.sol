@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
-
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import "../app/WmbApp.sol";
 
 // Cross Chain Token Pool
 contract CCPoolV1 is WmbApp {
+    using SafeERC20 for IERC20;
     address public poolToken;
 
     // chain id => remote pool address
@@ -27,7 +28,7 @@ contract CCPoolV1 is WmbApp {
     function crossTo(uint256 toChainId, address to, uint256 amount, uint gasLimit) public payable {
         // check support before transfer
         require(remotePools[toChainId] != address(0), "remote pool not configured");
-        IERC20(poolToken).transferFrom(msg.sender, address(this), amount);
+        IERC20(poolToken).safeTransferFrom(msg.sender, address(this), amount);
         uint fee = estimateFee(toChainId, gasLimit);
         _dispatchMessage(toChainId, remotePools[toChainId], abi.encode(msg.sender, to, amount, "crossTo"), fee);
         emit CrossRequest(toChainId, msg.sender, to, amount);
@@ -41,7 +42,7 @@ contract CCPoolV1 is WmbApp {
     ) internal override {
         (address fromAccount, address to, uint256 amount, string memory crossType) = abi.decode(data, (address, address, uint256, string));
         require(IERC20(poolToken).balanceOf(address(this)) >= amount, "Pool balance not enough");
-        IERC20(poolToken).transfer(to, amount);
+        IERC20(poolToken).safeTransfer(to, amount);
         emit CrossArrive(fromChainId, fromAccount, to, amount, crossType);
     }
 }

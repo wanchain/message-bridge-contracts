@@ -1,22 +1,22 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.18;
+pragma solidity ^0.8.18;
 
-import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
+import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "../app/WmbApp.sol";
 
-// Cross Chain Token Pool
-contract CCPoolV2 is WmbApp {
+// Cross Chain Token Pool for bitrock
+contract CCPoolV3 is WmbApp, ReentrancyGuard {
     using SafeERC20 for IERC20;
+
     address public poolToken;
 
     // chain id => remote pool address
     mapping(uint => address) public remotePools;
 
     event CrossArrive(uint256 indexed fromChainId, address indexed from, address indexed to, uint256 amount, string crossType);
-
     event CrossRequest(uint256 indexed toChainId, address indexed from, address indexed to, uint256 amount);
-
     event CrossRevert(uint256 indexed fromChainId, address indexed from, address indexed to, uint256 amount);
 
     error RevertFailed (
@@ -35,16 +35,13 @@ contract CCPoolV2 is WmbApp {
         remotePools[chainId] = remotePool;
     }
 
-    function crossTo(uint256 toChainId, address to, uint256 amount) public payable {
+    function crossTo(uint256 toChainId, uint256 amount) public payable nonReentrant {
         require(remotePools[toChainId] != address(0), "remote pool not configured");
-
         IERC20(poolToken).safeTransferFrom(msg.sender, address(this), amount);
-
         uint fee = estimateFee(toChainId, 800_000);
-
-        _dispatchMessage(toChainId, remotePools[toChainId], abi.encode(msg.sender, to, amount, "crossTo"), fee);
-
-        emit CrossRequest(toChainId, msg.sender, to, amount);
+        require(msg.value >= fee, "Insufficient fee");
+        _dispatchMessage(toChainId, remotePools[toChainId], abi.encode(msg.sender, msg.sender, amount, "crossTo"), fee);
+        emit CrossRequest(toChainId, msg.sender, msg.sender, amount);
     }
 
     // Transfer in enough native coin for fee. 

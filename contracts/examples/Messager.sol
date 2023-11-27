@@ -1,7 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.18;
 
-import "@wandevs/message/contracts/app/WmbApp.sol";
+import "../app/WmbApp.sol";
+// import "@wandevs/message/contracts/app/WmbApp.sol";
 
 contract Messager is WmbApp {
     mapping(bytes32 => bytes) public messages;

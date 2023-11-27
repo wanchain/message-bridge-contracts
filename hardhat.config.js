@@ -46,6 +46,14 @@ module.exports = {
     polygonMumbai: {
       url: 'https://polygon-mumbai-bor.publicnode.com',
       accounts: [process.env.PK],
+    },
+    polygon: {
+      url: 'https://polygon-bor.publicnode.com',
+      accounts: [process.env.PK],
+    },
+    mainnet: {
+      url: 'https://ethereum.publicnode.com',
+      accounts: [process.env.PK],
     }
   },
   etherscan: {
