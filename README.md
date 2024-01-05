@@ -35,6 +35,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | Optimism | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484262 |
 | Arbitrum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741826 |
 | Energi | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147493445 |
+| Ethereum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147483708 |
 
 
 ## WMB App
