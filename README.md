@@ -14,32 +14,33 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 
 #### Testnet
 
-| Network | Contract Address |
-| --- | --- |
-| Wanchain Testnet | [0xEB14407Edc497a73934dE08D5c3079BB1F5f145D](https://testnet.wanscan.org/address/0xEB14407Edc497a73934dE08D5c3079BB1F5f145D) |
-| Ethereum Goerli Testnet (Deprecated) | [0x9454C2F15F308098163623D5E7deCe366793efD3](https://goerli.etherscan.io/address/0x9454C2F15F308098163623D5E7deCe366793efD3) |
-| Ethereum Sepolia Testnet | [0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05](https://sepolia.etherscan.io/address/0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05)
-| Avalanche Fuji Testnet | [0x8Ee72C8194ec8A527B1D4981742727437091C913](https://testnet.snowtrace.io/address/0x8Ee72C8194ec8A527B1D4981742727437091C913) |
-| XDC testnet | [0x8c1b9daD87BFC48DF48b15baA19d0FB163030169](https://apothem.xinfinscan.com/address/xdc8c1b9daD87BFC48DF48b15baA19d0FB163030169#transactions) |
-| Arbitrum Goerli Testnet (Deprecated) | [0x294B79d3D13DAb36C51C8E4Cf3c2Cd3948F0bA4C](https://testnet.arbiscan.io/address/0x294B79d3D13DAb36C51C8E4Cf3c2Cd3948F0bA4C) |
-| Arbitrum Sepolia Testnet | [0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95](https://sepolia.arbiscan.io/address/0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95#code) |
-| Optimism Goerli Testnet (Deprecated) | [0x9B9492466F70e0dA0f4ef0aC27a53550B0769232](https://goerli-optimism.etherscan.io/address/0x9B9492466F70e0dA0f4ef0aC27a53550B0769232) |
-| Optimism Sepolia Testnet | [0x0c7a6313411c15cd3a0f5ffec922af3d8a1b900d](https://optimism-sepolia.blockscout.com/address/0x0C7A6313411C15Cd3A0F5FFEc922af3d8a1b900D) |
-| Polygon Mumbai Testnet | [0x61F4aBa60A158E180521264a793fCb2901fCe998](https://mumbai.polygonscan.com/address/0x61F4aBa60A158E180521264a793fCb2901fCe998) |
+| Index | Chain Name | Chain ID | Gateway |
+| --- | --- | --- | --- |
+| 1 | Avalanche Fuji Testnet | 2147492648 | 0x8Ee72C8194ec8A527B1D4981742727437091C913 |
+| 2 | Wanchain Testnet | 2153201998 | 0xEB14407Edc497a73934dE08D5c3079BB1F5f145D |
+| 3 | XDC Apothem Testnet | 2147484198 | 0x8c1b9daD87BFC48DF48b15baA19d0FB163030169 |
+| 4 | Ethereum Sepolia Testnet | 2147483708 | 0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05 |
+| 5 | Arbitrum Sepolia | 1073741826 | 0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95 |
+| 6 | Optimism Sepolia | 2147484262 | 0x0c7a6313411c15cd3a0f5ffec922af3d8a1b900d |
+| 7 | polygon | 2147484614 | 0x45463b2d973bd3304a2cad1f9765b098ece4afce |
+| 8 | energi | 2147493445 | 0x9e8aafd785f8cc9aebb4b6fbf817ee988e85fede |
+| 9 | bitrock | 2154655314 | 0xd4b5f10d61916bd6e0860144a91ac658de8a1437 |
+| 10 | Kanazawa(Meld Testnet) | 1073741847 | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f |
 
 #### Mainnet
 
-| Network | Address | Bip44 chainId |
-| --- | --- | --- |
-| Polygon | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484614 |
-| BSC | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484362 |
-| Wanchain | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2153201998 |
-| Avalanche | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147492648 |
-| Optimism | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484262 |
-| Arbitrum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741826 |
-| Energi | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147493445 |
-| Ethereum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147483708 |
-
+| Index | Network | Address | Bip44 chainId |
+| --- | --- | --- | --- |
+| 1 | Polygon | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484614 |
+| 2 | BSC | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484362 |
+| 3 | Wanchain | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2153201998 |
+| 4 | Avalanche | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147492648 |
+| 5 | Optimism | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147484262 |
+| 6 | Arbitrum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741826 |
+| 7 | Energi | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147493445 |
+| 8 | Bitrock | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2154655314 |
+| 9 | Ethereum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147483708 |
+| 10 | Meld | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741847 |
 
 ## WMB App
 
