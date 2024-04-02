@@ -14,18 +14,18 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 
 #### Testnet
 
-| Index | Chain Name | Chain ID | Gateway |
+| Index | Chain Name | Gateway | Chain ID |
 | --- | --- | --- | --- |
-| 1 | Avalanche Fuji Testnet | 2147492648 | 0x8Ee72C8194ec8A527B1D4981742727437091C913 |
-| 2 | Wanchain Testnet | 2153201998 | 0xEB14407Edc497a73934dE08D5c3079BB1F5f145D |
-| 3 | XDC Apothem Testnet | 2147484198 | 0x8c1b9daD87BFC48DF48b15baA19d0FB163030169 |
-| 4 | Ethereum Sepolia Testnet | 2147483708 | 0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05 |
-| 5 | Arbitrum Sepolia | 1073741826 | 0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95 |
-| 6 | Optimism Sepolia | 2147484262 | 0x0c7a6313411c15cd3a0f5ffec922af3d8a1b900d |
-| 7 | polygon | 2147484614 | 0x45463b2d973bd3304a2cad1f9765b098ece4afce |
-| 8 | energi | 2147493445 | 0x9e8aafd785f8cc9aebb4b6fbf817ee988e85fede |
-| 9 | bitrock | 2154655314 | 0xd4b5f10d61916bd6e0860144a91ac658de8a1437 |
-| 10 | Kanazawa(Meld Testnet) | 1073741847 | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f |
+| 1 | Avalanche Fuji Testnet | 0x8Ee72C8194ec8A527B1D4981742727437091C913 | 2147492648 |
+| 2 | Wanchain Testnet | 0xEB14407Edc497a73934dE08D5c3079BB1F5f145D | 2153201998 |
+| 3 | XDC Apothem Testnet | 0x8c1b9daD87BFC48DF48b15baA19d0FB163030169 | 2147484198 |
+| 4 | Ethereum Sepolia Testnet | 0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05 | 2147483708 |
+| 5 | Arbitrum Sepolia | 0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95 | 1073741826 |
+| 6 | Optimism Sepolia | 0x0c7a6313411c15cd3a0f5ffec922af3d8a1b900d | 2147484262 |
+| 7 | polygon | 0x45463b2d973bd3304a2cad1f9765b098ece4afce | 2147484614 |
+| 8 | energi | 0x9e8aafd785f8cc9aebb4b6fbf817ee988e85fede | 2147493445 |
+| 9 | bitrock | 0xd4b5f10d61916bd6e0860144a91ac658de8a1437 | 2154655314 |
+| 10 | Kanazawa(Meld Testnet) | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f | 1073741847 |
 
 #### Mainnet
 
