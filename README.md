@@ -26,6 +26,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 8 | energi | 0x9e8aafd785f8cc9aebb4b6fbf817ee988e85fede | 2147493445 |
 | 9 | bitrock | 0xd4b5f10d61916bd6e0860144a91ac658de8a1437 | 2154655314 |
 | 10 | Kanazawa(Meld Testnet) | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f | 1073741847 |
+| 11 | BSC Testnet | 0x7198eb89cc364cdd8c81ef6c39c597712c070ac6 | 2147484362 |
 
 #### Mainnet
 
