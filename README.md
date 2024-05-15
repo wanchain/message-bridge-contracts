@@ -28,6 +28,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 10 | Kanazawa(Meld Testnet) | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f | 1073741847 |
 | 11 | BSC Testnet | 0x7198eb89cc364cdd8c81ef6c39c597712c070ac6 | 2147484362 |
 | 12 | DIONE Odyssey Testnet | 0xc12cf8cc8eff1f39c9e60da81d11745c25c59501 | 1073741848 |
+| 13 | PLYR TAU Testnet | 0xc12cf8cc8eff1f39c9e60da81d11745c25c59501 | 1073741849 |
 
 #### Mainnet
 
