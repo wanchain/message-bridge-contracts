@@ -22,13 +22,14 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 4 | Ethereum Sepolia Testnet | 0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05 | 2147483708 |
 | 5 | Arbitrum Sepolia | 0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95 | 1073741826 |
 | 6 | Optimism Sepolia | 0x0c7a6313411c15cd3a0f5ffec922af3d8a1b900d | 2147484262 |
-| 7 | polygon amoy | 0xd3b60155e7c0f3ac8fa6a42f16d07b2084dac91b | 2147484614 |
+| 7 | polygon amoy | 0x5522976caf971e0000183ab20cab8ebba9a90cdc | 2147484614 |
 | 8 | energi | 0x9e8aafd785f8cc9aebb4b6fbf817ee988e85fede | 2147493445 |
 | 9 | bitrock | 0xd4b5f10d61916bd6e0860144a91ac658de8a1437 | 2154655314 |
 | 10 | Kanazawa(Meld Testnet) | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f | 1073741847 |
 | 11 | BSC Testnet | 0x7198eb89cc364cdd8c81ef6c39c597712c070ac6 | 2147484362 |
 | 12 | DIONE Odyssey Testnet | 0xd21f22e9e434f3814a950ad136d882fcffb9685c | 1073741848 |
 | 13 | PLYR TAU Testnet | 0xc12cf8cc8eff1f39c9e60da81d11745c25c59501 | 1073741849 |
+| 14 | edeXa Testnet | 0xd21f22e9e434f3814a950ad136d882fcffb9685c | 1073741850 |
 
 #### Mainnet
 
