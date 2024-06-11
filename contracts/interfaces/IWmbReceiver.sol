@@ -19,6 +19,6 @@ interface IWmbReceiver {
         bytes calldata data,
         bytes32 messageId,
         uint256 fromChainId,
-        address from
+        bytes calldata from
     ) external;
 }

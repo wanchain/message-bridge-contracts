@@ -43,7 +43,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     mapping(bytes32 => uint256) public messageGasLimit;
 
     // Mapping of sourceChainId->dstChainId->sourceContract->targetContract->nonce to prevent replay attacks
-    mapping(uint256 => mapping(uint256 => mapping(address => mapping(address => uint256)))) public nonces;
+    mapping(uint256 => mapping(uint256 => mapping(address => mapping(bytes => uint256)))) public nonces;
 
     // Mapping of target chain IDs to supported status
     mapping(uint256 => bool) public supportedDstChains;
@@ -53,7 +53,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     struct ReceiveMsgData {
         uint256 sourceChainId;
-        address sourceContract;
+        bytes sourceContract;
         address targetContract;
         bytes messageData;
         uint256 gasLimit;
@@ -61,7 +61,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     struct ReceiveBatchMsgData {
         uint256 sourceChainId;
-        address sourceContract;
+        bytes sourceContract;
         Message[] messages;
         uint256 gasLimit;
     }
@@ -77,16 +77,21 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     enum GroupStatus { none, initial, curveSeted, failed, selected, ready, unregistered, dismissed }
     
 
-    function initialize(address admin, address _cross) public initializer {
+    function initialize(address admin, address _cross, uint256 chainId_) public initializer {
         require(admin != address(0), "WmbGateway: Invalid admin address");
         // Initialize the AccessControl module with the given admin
         address _oracleCross;
         address _signatureVerifierCross;
-        (, _oracleCross, , , _signatureVerifierCross) = IWanchainMPC(_cross).getPartners();
-        uint _chainId = IWanchainMPC(_cross).currentChainID();
-        require(_chainId != 0, "chainId is empty");
-
-        IWanchainMPC(_cross).getPartners();
+        uint _chainId;
+        if (_cross != address(0)) {
+            (, _oracleCross, , , _signatureVerifierCross) = IWanchainMPC(_cross).getPartners();
+            _chainId = IWanchainMPC(_cross).currentChainID();
+            require(_chainId != 0, "chainId is empty");
+            IWanchainMPC(_cross).getPartners();
+        } else {
+            _chainId = chainId_;
+        }
+       
         chainId = _chainId;
         maxGasLimit = 8_000_000;
         minGasLimit = 150_000;
@@ -102,7 +107,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
      * @dev Public interface functions for the WMB Gateway contract.
      */
 
-    function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable nonReentrant returns (bytes32 messageId) {
+    function dispatchMessage(uint256 toChainId, bytes memory to, bytes memory data) external payable nonReentrant returns (bytes32 messageId) {
         require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
         require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
         require(msg.value <= maxGasLimit * baseFees[toChainId], "WmbGateway: Fee too large");
@@ -113,7 +118,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
     }
 
-    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
+    function dispatchMessageBatch(uint256 toChainId, Message[] memory messages) external payable nonReentrant returns (bytes32 messageId) {
         require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
         require(msg.value >= minGasLimit * baseFees[toChainId], "WmbGateway: Fee too low");
         
@@ -149,12 +154,12 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     function receiveMessage(
         bytes32 messageId,
         uint256 sourceChainId,
-        address sourceContract,
+        bytes memory sourceContract,
         address targetContract,
-        bytes calldata messageData,
+        bytes memory messageData,
         uint256 gasLimit,
         bytes32 smgID, 
-        bytes calldata r, 
+        bytes memory r, 
         bytes32 s
     ) external {
         bytes32 sigHash = keccak256(abi.encode(
@@ -201,11 +206,11 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
     function receiveBatchMessage(
         bytes32 messageId,
         uint256 sourceChainId,
-        address sourceContract,
-        Message[] calldata messages,
+        bytes memory sourceContract,
+        Message[] memory messages,
         uint256 gasLimit,
         bytes32 smgID,
-        bytes calldata r, 
+        bytes memory r, 
         bytes32 s
     ) external {
         bytes32 sigHash = keccak256(abi.encode(
@@ -216,9 +221,9 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
             messages
         ));
 
-        address ret = isToContractSame(messages);
-        if (ret != address(0) && customVerifier[ret] != address(0)) {
-            address verifier = customVerifier[ret];
+        bytes memory ret = isToContractSame(messages);
+        if (ret.length > 0 && customVerifier[bytesToAddress(ret)] != address(0)) {
+            address verifier = customVerifier[bytesToAddress(ret)];
             if (!IWmbVerifier(verifier).verify(sigHash, r)) {
                 revert SignatureVerifyFailed({
                     smgID: smgID,
@@ -247,12 +252,19 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         );
     }
 
-    function isToContractSame(Message[] calldata messages) internal pure returns (address) {
+    function bytesToAddress(bytes memory bys) public pure returns (address addr) {
+        require(bys.length == 20, "Invalid bytes length for address");
+        assembly {
+            addr := mload(add(bys, 20))
+        }
+    }
+
+    function isToContractSame(Message[] memory messages) internal pure returns (bytes memory) {
         uint length = messages.length;
-        address toContract = messages[0].to;
+        bytes memory toContract = messages[0].to;
         for (uint256 i = 1; i < length; i++) {
-            if (toContract != messages[i].to) {
-                return address(0);
+            if (keccak256(toContract) != keccak256(messages[i].to)) {
+                return bytes("");
             }
         }
         return toContract;
@@ -263,7 +275,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
      * These functions are only accessible to accounts with the DEFAULT_ADMIN_ROLE.
      */
 
-    function batchSetBaseFees(uint256[] calldata _targetChainIds, uint256[] calldata _baseFees) external {
+    function batchSetBaseFees(uint256[] memory _targetChainIds, uint256[] memory _baseFees) external {
         // limit AccessControl
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         require(_targetChainIds.length == _baseFees.length, "WmbGateway: Invalid input");
@@ -294,7 +306,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         _to.transfer(address(this).balance);
     }
 
-    function setSupportedDstChains(uint256[] calldata targetChainIds, bool[] calldata supported) external {
+    function setSupportedDstChains(uint256[] memory targetChainIds, bool[] memory supported) external {
         require(hasRole(DEFAULT_ADMIN_ROLE, msg.sender), "WmbGateway: Caller is not an admin");
         require(targetChainIds.length == supported.length, "WmbGateway: Invalid input");
         for (uint256 i = 0; i < targetChainIds.length; i++) {
@@ -386,8 +398,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     function _getMessageId(
         uint256 targetChainId,
-        address targetContract,
-        bytes calldata messageData
+        bytes memory targetContract,
+        bytes memory messageData
     ) internal returns (bytes32 messageId) {
         uint256 nonce = ++nonces[chainId][targetChainId][msg.sender][targetContract];
         require(messageData.length <= maxMessageLength, "WmbGateway: Message too long");
@@ -433,7 +445,7 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         uint length = data.messages.length;
         uint i = 0;
         for (i = 0; i < length; i++) {
-            try IWmbReceiver(data.messages[i].to).wmbReceive{gas: gasleft()}(data.messages[i].data, messageId, data.sourceChainId, data.sourceContract) {
+            try IWmbReceiver(bytesToAddress(data.messages[i].to)).wmbReceive{gas: gasleft()}(data.messages[i].data, messageId, data.sourceChainId, data.sourceContract) {
                 // do nothing
             } catch (bytes memory reason) {
                 revert MessageBatchFailure({

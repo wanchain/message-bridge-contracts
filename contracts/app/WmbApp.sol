@@ -97,7 +97,7 @@ abstract contract WmbApp is AccessControl, Initializable, IWmbReceiver {
      */
     function _dispatchMessage(
         uint toChainId,
-        address to,
+        bytes memory to,
         bytes memory data,
         uint fee
     ) virtual internal returns (bytes32) {

@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 // https://github.com/ethereum/EIPs/blob/master/EIPS/eip-5164.md
 
 struct Message {
-    address to;
+    bytes to;
     bytes data;
 }
 
@@ -15,7 +15,7 @@ interface MessageDispatcher {
     bytes32 indexed messageId,
     address indexed from,
     uint256 indexed toChainId,
-    address to,
+    bytes to,
     bytes data
   );
 
@@ -36,7 +36,7 @@ interface SingleMessageDispatcher is MessageDispatcher {
      * @param data The data to be sent to the destination contract.
      * @return messageId A unique identifier for the dispatched message.
      */ 
-    function dispatchMessage(uint256 toChainId, address to, bytes calldata data) external payable returns (bytes32 messageId);
+    function dispatchMessage(uint256 toChainId, bytes memory to, bytes memory data) external payable returns (bytes32 messageId);
 }
 
 interface BatchedMessageDispatcher is MessageDispatcher {
@@ -47,7 +47,7 @@ interface BatchedMessageDispatcher is MessageDispatcher {
      * @param messages An array of Message struct objects containing the destination addresses and data to be sent to each destination contract.
      * @return messageId A unique identifier for the dispatched batch.
      */ 
-    function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable returns (bytes32 messageId);
+    function dispatchMessageBatch(uint256 toChainId, Message[] memory messages) external payable returns (bytes32 messageId);
 }
 
 /**

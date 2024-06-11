@@ -42,12 +42,12 @@ interface IWmbGateway is IEIP5164 {
     function receiveMessage(
         bytes32 messageId,
         uint256 sourceChainId,
-        address sourceContract,
+        bytes memory sourceContract,
         address targetContract,
-        bytes calldata messageData,
+        bytes memory messageData,
         uint256 gasLimit,
         bytes32 smgID, 
-        bytes calldata r, 
+        bytes memory r, 
         bytes32 s
     ) external;
 
@@ -70,11 +70,11 @@ interface IWmbGateway is IEIP5164 {
     function receiveBatchMessage(
         bytes32 messageId,
         uint256 sourceChainId,
-        address sourceContract,
-        Message[] calldata messages,
+        bytes memory sourceContract,
+        Message[] memory messages,
         uint256 gasLimit,
         bytes32 smgID,
-        bytes calldata r, 
+        bytes memory r, 
         bytes32 s
     ) external;
 
