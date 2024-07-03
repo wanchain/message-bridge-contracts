@@ -45,6 +45,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 8 | Bitrock | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2154655314 |
 | 9 | Ethereum | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147483708 |
 | 10 | Meld | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741847 |
+| 11 | Plyr | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741849 |
 
 ## WMB App
 
