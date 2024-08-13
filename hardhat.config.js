@@ -7,6 +7,10 @@ module.exports = {
     timeout: 100000000
   },
   networks: {
+    waterfallMainnet: {
+      url: "https://rpc.waterfall.network",
+      accounts: [process.env.PK],
+    },
     wanchainTestnet: {
       url: "https://gwan-ssl.wandevs.org:46891",
       accounts: [process.env.PK],
