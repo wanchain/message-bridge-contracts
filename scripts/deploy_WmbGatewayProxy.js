@@ -11,7 +11,7 @@ async function main() {
   console.log('Deploying on', hre.network.name, 'with account', deployer);
   const WmbGatewayProxy = await hre.ethers.getContractFactory("WmbGatewayProxy");
   const proxy = await WmbGatewayProxy.deploy(
-    "0x10acBE3b9E6A2Ff7f341e5cbF4b6617741fF44aa", // WmbGateway address
+    "0xd97de67b982d79ED9f7EB2b1A13abC704b2cA082", // WmbGateway address
     "0x9c5EBb12D1D26465523e04381aAA192a69a565CF", // upgrade admin groupApprove
     "0x", // data
   );

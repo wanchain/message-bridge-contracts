@@ -51,6 +51,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 11 | Plyr | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741849 |
 | 11 | Base | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741841 |
 | 12 | Waterfall | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741851 |
+| 13 | DIONE Mainnet | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741848 |
 
 ## WMB App
 

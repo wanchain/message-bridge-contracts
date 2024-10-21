@@ -7,6 +7,11 @@ module.exports = {
     timeout: 100000000
   },
   networks: {
+    dioneMainnet:{
+      url: "https://node.dioneprotocol.com/ext/bc/D/rpc",
+      accounts: [process.env.PK],
+      bip44ChainId: 1073741848,
+    },
     waterfallMainnet: {
       url: "https://rpc.waterfall.network",
       accounts: [process.env.PK],
