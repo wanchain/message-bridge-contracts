@@ -132,10 +132,6 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         emit SpenderApproved(msg.sender, spender, approved);
     }
 
-    function isSpenderApproved(address spender) external view returns (bool) {
-        return approvedSpenders[spenderToUser[spender]][spender];
-    }
-
     function feeBalance(address spender, uint256 toChainId, uint256 amount) external view returns (bool enough, uint256 balance) {
         address token = chainIdToFeeToken[toChainId];
         uint256 amountAndFee = amount + amount * platformFee / 10000;
