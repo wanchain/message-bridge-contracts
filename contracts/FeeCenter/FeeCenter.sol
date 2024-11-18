@@ -111,9 +111,15 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
 
     function approveSpender(address spender, bool approved) external {
         require(spender != address(0), "Invalid spender address");
+        address user = spenderToUser[spender];
+        if (user != address(0)) {
+            require(user == msg.sender, "Spender is registered to another user");
+        } else {
+            require(!approved, "Spender is not registered");
+        }
+
         approvedSpenders[msg.sender][spender] = approved;
         if (approved) {
-            require(spenderToUser[spender] == address(0), "Spender already registered");
             spenderToUser[spender] = msg.sender;
 
             // If approving a new spender, add to the user's spender list
