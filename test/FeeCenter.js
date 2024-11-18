@@ -85,6 +85,85 @@ describe("FeeCenter", function () {
             await feeCenter.connect(user1).withdrawFees(mockToken.address, amount);
             expect(await feeCenter.getUserBalance(user1.address, mockToken.address)).to.equal(0);
         });
+
+        it("should emit InsufficientFees event when balance is not enough", async function () {
+            const depositAmount = ethers.utils.parseEther("10");
+            const spendAmount = ethers.utils.parseEther("100");
+            
+            await feeCenter.connect(user1).depositFees(mockToken.address, depositAmount);
+            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            
+            await expect(
+                feeCenter.connect(agent).spendFees(
+                    spender.address,
+                    1,  // fromChainId
+                    1,  // toChainId
+                    spendAmount
+                )
+            ).to.emit(feeCenter, "InsufficientFees");
+        });
+
+        it("should check fee balance correctly", async function () {
+            const amount = ethers.utils.parseEther("100");
+            await feeCenter.connect(user1).depositFees(mockToken.address, amount);
+            await feeCenter.connect(user1).approveSpender(spender.address, true);
+
+            const [enough, balance] = await feeCenter.feeBalance(
+                spender.address,
+                1,  // toChainId
+                ethers.utils.parseEther("50")
+            );
+
+            expect(enough).to.be.true;
+            expect(balance).to.equal(amount);
+        });
+    });
+
+    describe("Fee Collection", function () {
+        beforeEach(async function () {
+            await feeCenter.configToChainToken(1, mockToken.address);
+            await feeCenter.configToChainToken(2, NATIVE_COIN);
+            
+            // Setup some fees to collect
+            await mockToken.mint(user1.address, ethers.utils.parseEther("1000"));
+            await mockToken.connect(user1).approve(feeCenter.address, ethers.utils.parseEther("1000"));
+            await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("100"));
+            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            
+            // Spend some fees to accumulate
+            await feeCenter.connect(agent).spendFees(
+                spender.address,
+                1,
+                1,
+                ethers.utils.parseEther("50")
+            );
+
+            // Also deposit and spend some native tokens
+            await feeCenter.connect(user1).depositFees(NATIVE_COIN, ethers.utils.parseEther("1"), {
+                value: ethers.utils.parseEther("1")
+            });
+            await feeCenter.connect(agent).spendFees(
+                spender.address,
+                2,
+                2,
+                ethers.utils.parseEther("0.5")
+            );
+        });
+
+        it("should collect all fees correctly", async function () {
+            const initialBalance = await mockToken.balanceOf(feeWithdrawer.address);
+            const initialNativeBalance = await ethers.provider.getBalance(feeWithdrawer.address);
+
+            await feeCenter.connect(feeWithdrawer).collectAllFees();
+
+            // Verify all fees were collected
+            expect(await feeCenter.accumulatedFees(mockToken.address)).to.equal(0);
+            expect(await feeCenter.accumulatedFees(NATIVE_COIN)).to.equal(0);
+            
+            // Verify balances increased
+            expect(await mockToken.balanceOf(feeWithdrawer.address)).to.be.gt(initialBalance);
+            expect(await ethers.provider.getBalance(feeWithdrawer.address)).to.be.gt(initialNativeBalance);
+        });
     });
 
     describe("Spender Management", function () {
@@ -96,6 +175,28 @@ describe("FeeCenter", function () {
             await feeCenter.connect(user1).approveSpender(spender.address, false);
             expect(await feeCenter.approvedSpenders(user1.address, spender.address)).to.be.false;
             expect(await feeCenter.spenderToUser(spender.address)).to.equal(ethers.constants.AddressZero);
+        });
+
+        it("should handle multiple spenders for a user correctly", async function () {
+            const spender2 = user2; // Using user2 as second spender for this test
+            
+            // Approve both spenders
+            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            await feeCenter.connect(user1).approveSpender(spender2.address, true);
+            
+            // Check spenders list
+            const spenders = await feeCenter.getUserSpenders(user1.address);
+            expect(spenders.length).to.equal(2);
+            expect(spenders).to.include(spender.address);
+            expect(spenders).to.include(spender2.address);
+            
+            // Revoke first spender
+            await feeCenter.connect(user1).approveSpender(spender.address, false);
+            
+            // Check updated spenders list
+            const updatedSpenders = await feeCenter.getUserSpenders(user1.address);
+            expect(updatedSpenders.length).to.equal(1);
+            expect(updatedSpenders[0]).to.equal(spender2.address);
         });
     });
 
@@ -202,6 +303,59 @@ describe("FeeCenter", function () {
                     value: ethers.utils.parseEther("1")
                 })
             ).to.be.revertedWith("Direct transfers not supported");
+        });
+    });
+
+    describe("User Management", function () {
+        beforeEach(async function () {
+            await feeCenter.configToChainToken(1, mockToken.address);
+            await mockToken.mint(user1.address, ethers.utils.parseEther("1000"));
+            await mockToken.connect(user1).approve(feeCenter.address, ethers.utils.parseEther("1000"));
+        });
+
+        it("should track users correctly when depositing fees", async function () {
+            // Check initial state
+            expect(await feeCenter.isUserDeposited(user1.address)).to.be.false;
+            const initialUsers = await feeCenter.getAllUsers();
+            expect(initialUsers.length).to.equal(0);
+
+            // Deposit fees
+            await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("100"));
+
+            // Verify user tracking
+            expect(await feeCenter.isUserDeposited(user1.address)).to.be.true;
+            const updatedUsers = await feeCenter.getAllUsers();
+            expect(updatedUsers.length).to.equal(1);
+            expect(updatedUsers[0]).to.equal(user1.address);
+        });
+
+        it("should not add user multiple times when making multiple deposits", async function () {
+            // First deposit
+            await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("50"));
+            const usersAfterFirst = await feeCenter.getAllUsers();
+            expect(usersAfterFirst.length).to.equal(1);
+
+            // Second deposit
+            await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("50"));
+            const usersAfterSecond = await feeCenter.getAllUsers();
+            expect(usersAfterSecond.length).to.equal(1);
+            expect(usersAfterSecond[0]).to.equal(user1.address);
+        });
+
+        it("should track multiple users correctly", async function () {
+            // Setup for user2
+            await mockToken.mint(user2.address, ethers.utils.parseEther("1000"));
+            await mockToken.connect(user2).approve(feeCenter.address, ethers.utils.parseEther("1000"));
+
+            // Deposits from both users
+            await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("100"));
+            await feeCenter.connect(user2).depositFees(mockToken.address, ethers.utils.parseEther("100"));
+
+            // Verify users list
+            const allUsers = await feeCenter.getAllUsers();
+            expect(allUsers.length).to.equal(2);
+            expect(allUsers).to.include(user1.address);
+            expect(allUsers).to.include(user2.address);
         });
     });
 });

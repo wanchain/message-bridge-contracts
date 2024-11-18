@@ -18,6 +18,10 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
 
     address[] public supportedTokens;
 
+    address[] public allUsers;
+
+    mapping(address => bool) public isUserDeposited;
+
     mapping(address => bool) public isSupportedToken;
     
     // User balance mapping: user => token => amount
@@ -46,7 +50,6 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     address public constant NATIVE_COIN = address(0);
 
     event TokenAdded(address token);
-    event TokenRemoved(address token);
     event FeesDeposited(address user, address token, uint256 amount);
     event FeesWithdrawn(address user, address token, uint256 amount);
     event FeesSpent(address indexed user, address indexed spender, uint256 fromChainId, uint256 toChainId, address token, uint256 amount, int256 newBalance);
@@ -65,13 +68,19 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         if (token != NATIVE_COIN) {
             require(token.isContract(), "Token must be a contract");
         }
-        isSupportedToken[token] = true;
+        if (!isSupportedToken[token]) {
+            supportedTokens.push(token);
+            isSupportedToken[token] = true;
+        }
         chainIdToFeeToken[toChainId] = token;
-        supportedTokens.push(token);
         emit TokenAdded(token);
     }
 
     function depositFees(address token, uint256 amount) external nonReentrant payable {
+        if (!isUserDeposited[msg.sender]) {
+            allUsers.push(msg.sender);
+            isUserDeposited[msg.sender] = true;
+        }
         if (token == NATIVE_COIN) {
             require(msg.value == amount, "Invalid native token amount");
             userBalances[msg.sender][NATIVE_COIN] += int256(amount);
@@ -212,6 +221,10 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     // Add new helper function to get all spenders for a user
     function getUserSpenders(address user) external view returns (address[] memory) {
         return userSpenders[user];
+    }
+
+    function getAllUsers() external view returns (address[] memory) {
+        return allUsers;
     }
 
     // Add receive function to accept native tokens
