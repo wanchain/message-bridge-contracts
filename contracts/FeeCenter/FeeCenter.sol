@@ -198,29 +198,35 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         return userBalances[user][token];
     }
 
-    function getUserBalances(address user) external view returns (address[] memory tokens, uint8[] memory decimals, int256[] memory balances) {
+    function getUserBalances(address user) external view returns (address[] memory tokens, string[] memory symbols, uint8[] memory decimals, int256[] memory balances) {
         tokens = supportedTokens;
+        symbols = new string[](supportedTokens.length);
         decimals = new uint8[](supportedTokens.length);
         balances = new int256[](supportedTokens.length);
         for (uint i = 0; i < supportedTokens.length; i++) {
             if (supportedTokens[i] != NATIVE_COIN) {
-                decimals[i] = ERC20(supportedTokens[i]).decimals();
+                decimals[i] = ERC20(supportedTokens[i]).decimals(); 
+                symbols[i] = ERC20(supportedTokens[i]).symbol();
             } else {
                 decimals[i] = 18;
+                symbols[i] = "WAN";
             }
             balances[i] = userBalances[user][supportedTokens[i]];
         }
     }
 
-    function getAllAccumulatedFees() external view returns (address[] memory tokens, uint8[] memory decimals, uint256[] memory amounts) {
+    function getAllAccumulatedFees() external view returns (address[] memory tokens, string[] memory symbols, uint8[] memory decimals, uint256[] memory amounts) {
         tokens = supportedTokens;
+        symbols = new string[](supportedTokens.length);
         decimals = new uint8[](supportedTokens.length);
         amounts = new uint256[](supportedTokens.length);
         for (uint i = 0; i < supportedTokens.length; i++) {
             if (supportedTokens[i] != NATIVE_COIN) {
                 decimals[i] = ERC20(supportedTokens[i]).decimals();
+                symbols[i] = ERC20(supportedTokens[i]).symbol();
             } else {
                 decimals[i] = 18;
+                symbols[i] = "WAN";
             }
             amounts[i] = accumulatedFees[supportedTokens[i]];
         }
