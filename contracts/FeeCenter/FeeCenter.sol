@@ -115,7 +115,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         if (user != address(0)) {
             require(user == msg.sender, "Spender is registered to another user");
         } else {
-            require(!approved, "Spender is not registered");
+            require(approved, "Spender is not registered");
         }
 
         approvedSpenders[msg.sender][spender] = approved;
