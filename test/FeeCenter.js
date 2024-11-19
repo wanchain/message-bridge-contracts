@@ -89,6 +89,7 @@ describe("FeeCenter", function () {
         it("should emit InsufficientFees event when balance is not enough", async function () {
             const depositAmount = ethers.utils.parseEther("10");
             const spendAmount = ethers.utils.parseEther("100");
+            const txId = ethers.utils.formatBytes32String("test-tx");
             
             await feeCenter.connect(user1).depositFees(mockToken.address, depositAmount);
             await feeCenter.connect(user1).approveSpender(spender.address, true);
@@ -98,7 +99,8 @@ describe("FeeCenter", function () {
                     spender.address,
                     1,  // fromChainId
                     1,  // toChainId
-                    spendAmount
+                    spendAmount,
+                    txId
                 )
             ).to.emit(feeCenter, "InsufficientFees");
         });
@@ -131,22 +133,26 @@ describe("FeeCenter", function () {
             await feeCenter.connect(user1).approveSpender(spender.address, true);
             
             // Spend some fees to accumulate
+            const txId1 = ethers.utils.formatBytes32String("tx1");
             await feeCenter.connect(agent).spendFees(
                 spender.address,
                 1,
                 1,
-                ethers.utils.parseEther("50")
+                ethers.utils.parseEther("50"),
+                txId1
             );
 
             // Also deposit and spend some native tokens
             await feeCenter.connect(user1).depositFees(NATIVE_COIN, ethers.utils.parseEther("1"), {
                 value: ethers.utils.parseEther("1")
             });
+            const txId2 = ethers.utils.formatBytes32String("tx2");
             await feeCenter.connect(agent).spendFees(
                 spender.address,
                 2,
                 2,
-                ethers.utils.parseEther("0.5")
+                ethers.utils.parseEther("0.5"),
+                txId2
             );
         });
 
@@ -211,12 +217,14 @@ describe("FeeCenter", function () {
 
         it("should spend fees correctly", async function () {
             const amount = ethers.utils.parseEther("50");
+            const txId = ethers.utils.formatBytes32String("test-tx");
             
             await feeCenter.connect(agent).spendFees(
                 spender.address,
                 1,  // fromChainId
                 1,  // toChainId
-                amount
+                amount,
+                txId
             );
             
             // Calculate expected values
@@ -228,16 +236,42 @@ describe("FeeCenter", function () {
                 .to.equal(ethers.utils.parseEther("100").sub(totalDeduction));
             expect(await feeCenter.accumulatedFees(mockToken.address))
                 .to.equal(totalDeduction);
+            expect(await feeCenter.txHashToSpent(txId)).to.be.true;
+        });
+
+        it("should revert when spending with duplicate txId", async function () {
+            const amount = ethers.utils.parseEther("50");
+            const txId = ethers.utils.formatBytes32String("test-tx");
+            
+            await feeCenter.connect(agent).spendFees(
+                spender.address,
+                1,
+                1,
+                amount,
+                txId
+            );
+            
+            await expect(
+                feeCenter.connect(agent).spendFees(
+                    spender.address,
+                    1,
+                    1,
+                    amount,
+                    txId
+                )
+            ).to.be.revertedWith("Already spent");
         });
 
         it("should collect fees correctly", async function () {
             const amount = ethers.utils.parseEther("50");
+            const txId = ethers.utils.formatBytes32String("test-tx");
             
             await feeCenter.connect(agent).spendFees(
                 spender.address,
                 1,  // fromChainId
                 1,  // toChainId
-                amount
+                amount,
+                txId
             );
             
             // Calculate values

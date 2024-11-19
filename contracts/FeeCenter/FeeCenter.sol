@@ -41,6 +41,9 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
 
     // Mapping from To ChainId to fee token
     mapping(uint256 => address) public chainIdToFeeToken;
+
+    // Mapping from txHash to spent
+    mapping(bytes32 => bool) public txHashToSpent;
     
     bytes32 public constant FEE_WITHDRAWER_ROLE = keccak256("FEE_WITHDRAWER_ROLE");
     
@@ -52,7 +55,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     event TokenAdded(address token);
     event FeesDeposited(address user, address token, uint256 amount);
     event FeesWithdrawn(address user, address token, uint256 amount);
-    event FeesSpent(address indexed user, address indexed spender, uint256 fromChainId, uint256 toChainId, address token, uint256 amount, int256 newBalance);
+    event FeesSpent(address indexed user, address indexed spender, uint256 fromChainId, uint256 toChainId, address token, uint256 amount, int256 newBalance, bytes32 txHash);
     event SpenderApproved(address user, address spender, bool approved);
     event FeesCollected(address admin, address token, uint256 amount);
     event InsufficientFees(address indexed user, address indexed token, uint256 required, int256 current);
@@ -156,10 +159,11 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         balance = uint256(userBalances[spenderToUser[spender]][token]);
     }
 
-    function spendFees(address spender, uint256 fromChainId, uint256 toChainId, uint256 amount) external onlyRole(AGENT_ROLE) {
+    function spendFees(address spender, uint256 fromChainId, uint256 toChainId, uint256 amount, bytes32 txHash) external onlyRole(AGENT_ROLE) {
         address user = spenderToUser[spender];
         require(user != address(0), "Spender not registered");
         require(approvedSpenders[user][spender], "Spender not approved");
+        require(!txHashToSpent[txHash], "Already spent");
         address token = chainIdToFeeToken[toChainId];
         uint256 amountAndFee = amount + amount * platformFee / 10000;
         if (userBalances[user][token] < int256(amountAndFee)) {
@@ -167,7 +171,8 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         }
         userBalances[user][token] -= int256(amountAndFee);
         accumulatedFees[token] += amountAndFee;
-        emit FeesSpent(user, spender, fromChainId, toChainId, token, amountAndFee, userBalances[user][token]);
+        txHashToSpent[txHash] = true;
+        emit FeesSpent(user, spender, fromChainId, toChainId, token, amountAndFee, userBalances[user][token], txHash);
     }
 
     function collectFees(address token, uint256 amount) public onlyRole(FEE_WITHDRAWER_ROLE) {
