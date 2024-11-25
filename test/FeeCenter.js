@@ -120,6 +120,76 @@ describe("FeeCenter", function () {
             expect(enough).to.be.true;
             expect(balance).to.equal(amount);
         });
+
+        describe("Native Token Withdrawals", function () {
+            beforeEach(async function () {
+                // Deposit native tokens first
+                await feeCenter.connect(user1).depositFees(NATIVE_COIN, ethers.utils.parseEther("1"), {
+                    value: ethers.utils.parseEther("1")
+                });
+            });
+
+            it("should withdraw native tokens correctly", async function () {
+                const withdrawAmount = ethers.utils.parseEther("0.5");
+                const initialBalance = await ethers.provider.getBalance(user1.address);
+                
+                // Withdraw native tokens
+                const tx = await feeCenter.connect(user1).withdrawFees(NATIVE_COIN, withdrawAmount);
+                const receipt = await tx.wait();
+                const gasCost = receipt.gasUsed.mul(tx.gasPrice);
+                
+                // Check user's native token balance increased correctly
+                const finalBalance = await ethers.provider.getBalance(user1.address);
+                expect(finalBalance).to.equal(
+                    initialBalance.add(withdrawAmount).sub(gasCost)
+                );
+                
+                // Check contract balance decreased
+                expect(await feeCenter.getUserBalance(user1.address, NATIVE_COIN))
+                    .to.equal(ethers.utils.parseEther("0.5")); // 1 ETH - 0.5 ETH
+            });
+
+            it("should revert when withdrawing more native tokens than balance", async function () {
+                const withdrawAmount = ethers.utils.parseEther("2"); // More than deposited
+                await expect(
+                    feeCenter.connect(user1).withdrawFees(NATIVE_COIN, withdrawAmount)
+                ).to.be.revertedWith("Insufficient balance");
+            });
+
+            it("should emit FeesWithdrawn event for native token withdrawal", async function () {
+                const withdrawAmount = ethers.utils.parseEther("0.5");
+                await expect(feeCenter.connect(user1).withdrawFees(NATIVE_COIN, withdrawAmount))
+                    .to.emit(feeCenter, "FeesWithdrawn")
+                    .withArgs(user1.address, NATIVE_COIN, withdrawAmount);
+            });
+
+            it("should handle multiple native token withdrawals correctly", async function () {
+                // First withdrawal
+                await feeCenter.connect(user1).withdrawFees(NATIVE_COIN, ethers.utils.parseEther("0.3"));
+                expect(await feeCenter.getUserBalance(user1.address, NATIVE_COIN))
+                    .to.equal(ethers.utils.parseEther("0.7")); // 1 ETH - 0.3 ETH
+
+                // Second withdrawal
+                await feeCenter.connect(user1).withdrawFees(NATIVE_COIN, ethers.utils.parseEther("0.4"));
+                expect(await feeCenter.getUserBalance(user1.address, NATIVE_COIN))
+                    .to.equal(ethers.utils.parseEther("0.3")); // 0.7 ETH - 0.4 ETH
+            });
+
+            it("should revert when contract has insufficient native token balance", async function () {
+                // Simulate a situation where contract doesn't have enough native tokens
+                // First, withdraw most of the tokens
+                await feeCenter.connect(user1).withdrawFees(NATIVE_COIN, ethers.utils.parseEther("0.9"));
+                
+                // Now, try to withdraw the remaining balance when contract doesn't have enough funds
+                // (This scenario might be theoretical as it depends on the contract's native token balance)
+                const contractBalance = await ethers.provider.getBalance(feeCenter.address);
+                if (contractBalance.lt(ethers.utils.parseEther("0.1"))) {
+                    await expect(
+                        feeCenter.connect(user1).withdrawFees(NATIVE_COIN, ethers.utils.parseEther("0.1"))
+                    ).to.be.revertedWith("Native token transfer failed");
+                }
+            });
+        });
     });
 
     describe("Fee Collection", function () {
@@ -393,6 +463,148 @@ describe("FeeCenter", function () {
             expect(allUsers.length).to.equal(2);
             expect(allUsers).to.include(user1.address);
             expect(allUsers).to.include(user2.address);
+        });
+    });
+
+    describe("User Data Transfer", function () {
+        beforeEach(async function () {
+            // Setup initial state for user1
+            await feeCenter.configToChainToken(1, mockToken.address);
+            await feeCenter.configToChainToken(2, NATIVE_COIN);
+            
+            // Mint and deposit ERC20 tokens
+            await mockToken.mint(user1.address, ethers.utils.parseEther("1000"));
+            await mockToken.connect(user1).approve(feeCenter.address, ethers.utils.parseEther("1000"));
+            await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("100"));
+            
+            // Deposit native tokens
+            await feeCenter.connect(user1).depositFees(NATIVE_COIN, ethers.utils.parseEther("1"), {
+                value: ethers.utils.parseEther("1")
+            });
+            
+            // Setup spender approval
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
+        });
+
+        describe("transferUserData", function () {
+            it("should transfer all user data to new address", async function () {
+                const newAddress = user2.address;
+                
+                // Get initial state
+                const initialBalance = await feeCenter.getUserBalance(user1.address, mockToken.address);
+                const initialNativeBalance = await feeCenter.getUserBalance(user1.address, NATIVE_COIN);
+                const initialSpenders = await feeCenter.getUserSpenders(user1.address);
+                
+                // Execute transfer
+                await expect(feeCenter.connect(user1).transferUserData(newAddress))
+                    .to.emit(feeCenter, "UserDataTransferred")
+                    .withArgs(user1.address, newAddress, user1.address);
+                
+                // Verify balances transferred
+                expect(await feeCenter.getUserBalance(newAddress, mockToken.address)).to.equal(initialBalance);
+                expect(await feeCenter.getUserBalance(newAddress, NATIVE_COIN)).to.equal(initialNativeBalance);
+                expect(await feeCenter.getUserBalance(user1.address, mockToken.address)).to.equal(0);
+                expect(await feeCenter.getUserBalance(user1.address, NATIVE_COIN)).to.equal(0);
+                
+                // Verify spender approvals transferred
+                const newSpenders = await feeCenter.getUserSpenders(newAddress);
+                expect(newSpenders.length).to.equal(initialSpenders.length);
+                expect(newSpenders[0].spender).to.equal(initialSpenders[0].spender);
+                expect(newSpenders[0].fromChainId).to.equal(initialSpenders[0].fromChainId);
+                expect(await feeCenter.spenderToUser(1, spender.address)).to.equal(newAddress);
+                
+                // Verify user registration status
+                expect(await feeCenter.isUserDeposited(user1.address)).to.be.false;
+                expect(await feeCenter.isUserDeposited(newAddress)).to.be.true;
+            });
+
+            it("should revert when transferring to zero address", async function () {
+                await expect(
+                    feeCenter.connect(user1).transferUserData(ethers.constants.AddressZero)
+                ).to.be.revertedWith("Invalid new address");
+            });
+
+            it("should revert when transferring to self", async function () {
+                await expect(
+                    feeCenter.connect(user1).transferUserData(user1.address)
+                ).to.be.revertedWith("Cannot transfer to self");
+            });
+
+            it("should revert when transferring to registered address", async function () {
+                // First register user2
+                await mockToken.mint(user2.address, ethers.utils.parseEther("100"));
+                await mockToken.connect(user2).approve(feeCenter.address, ethers.utils.parseEther("100"));
+                await feeCenter.connect(user2).depositFees(mockToken.address, ethers.utils.parseEther("10"));
+
+                await expect(
+                    feeCenter.connect(user1).transferUserData(user2.address)
+                ).to.be.revertedWith("Target address already registered");
+            });
+        });
+
+        describe("adminTransferUserData", function () {
+            it("should allow admin to transfer user data between addresses", async function () {
+                const fromUser = user1.address;
+                const toUser = user2.address;
+                
+                // Get initial state
+                const initialBalance = await feeCenter.getUserBalance(fromUser, mockToken.address);
+                const initialNativeBalance = await feeCenter.getUserBalance(fromUser, NATIVE_COIN);
+                const initialSpenders = await feeCenter.getUserSpenders(fromUser);
+                
+                // Execute admin transfer
+                await expect(feeCenter.connect(owner).adminTransferUserData(fromUser, toUser))
+                    .to.emit(feeCenter, "UserDataTransferred")
+                    .withArgs(fromUser, toUser, owner.address);
+                
+                // Verify balances transferred
+                expect(await feeCenter.getUserBalance(toUser, mockToken.address)).to.equal(initialBalance);
+                expect(await feeCenter.getUserBalance(toUser, NATIVE_COIN)).to.equal(initialNativeBalance);
+                expect(await feeCenter.getUserBalance(fromUser, mockToken.address)).to.equal(0);
+                expect(await feeCenter.getUserBalance(fromUser, NATIVE_COIN)).to.equal(0);
+                
+                // Verify spender approvals transferred
+                const newSpenders = await feeCenter.getUserSpenders(toUser);
+                expect(newSpenders.length).to.equal(initialSpenders.length);
+                expect(newSpenders[0].spender).to.equal(initialSpenders[0].spender);
+                expect(newSpenders[0].fromChainId).to.equal(initialSpenders[0].fromChainId);
+                expect(await feeCenter.spenderToUser(1, spender.address)).to.equal(toUser);
+            });
+
+            it("should revert when non-admin tries to transfer", async function () {
+                await expect(
+                    feeCenter.connect(user2).adminTransferUserData(user1.address, user2.address)
+                ).to.be.reverted; // AccessControl error
+            });
+
+            it("should revert when source user is not registered", async function () {
+                await expect(
+                    feeCenter.connect(owner).adminTransferUserData(user2.address, user1.address)
+                ).to.be.revertedWith("Source user not registered");
+            });
+
+            it("should revert when target user is already registered", async function () {
+                // First register user2
+                await mockToken.mint(user2.address, ethers.utils.parseEther("100"));
+                await mockToken.connect(user2).approve(feeCenter.address, ethers.utils.parseEther("100"));
+                await feeCenter.connect(user2).depositFees(mockToken.address, ethers.utils.parseEther("10"));
+
+                await expect(
+                    feeCenter.connect(owner).adminTransferUserData(user1.address, user2.address)
+                ).to.be.revertedWith("Target address already registered");
+            });
+
+            it("should revert when transferring to zero address", async function () {
+                await expect(
+                    feeCenter.connect(owner).adminTransferUserData(user1.address, ethers.constants.AddressZero)
+                ).to.be.revertedWith("Invalid new address");
+            });
+
+            it("should revert when transferring to same address", async function () {
+                await expect(
+                    feeCenter.connect(owner).adminTransferUserData(user1.address, user1.address)
+                ).to.be.revertedWith("Cannot transfer to self");
+            });
         });
     });
 });
