@@ -13,6 +13,11 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     using Address for address;
     using SafeERC20 for IERC20;
 
+    struct Spender {
+        uint256 fromChainId;
+        address spender;
+    }
+
     // Platform fee, 10000 means 100%
     uint256 public platformFee;
 
@@ -27,14 +32,14 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     // User balance mapping: user => token => amount
     mapping(address => mapping(address => int256)) public userBalances;
 
-    // Approved spender mapping: user => spender => approved
-    mapping(address => mapping(address => bool)) public approvedSpenders;
+    // Approved spender mapping: user => fromChainId => spender => approved
+    mapping(address => mapping(uint256 => mapping(address => bool))) public approvedSpenders;
 
-    // Mapping from spender to user
-    mapping(address => address) public spenderToUser;
+    // Mapping from spender to user: fromChainId => spender => user
+    mapping(uint256 => mapping(address => address)) public spenderToUser;
 
     // Add new mapping to track all spenders for each user
-    mapping(address => address[]) public userSpenders;
+    mapping(address => Spender[]) public userSpenders;
 
     // Accumulated fees mapping: token => amount
     mapping(address => uint256) public accumulatedFees;
@@ -56,7 +61,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     event FeesDeposited(address user, address token, uint256 amount);
     event FeesWithdrawn(address user, address token, uint256 amount);
     event FeesSpent(address indexed user, address indexed spender, uint256 fromChainId, uint256 toChainId, address token, uint256 amount, int256 newBalance, bytes32 txHash);
-    event SpenderApproved(address user, address spender, bool approved);
+    event SpenderApproved(address user, uint256 fromChainId, address spender, bool approved);
     event FeesCollected(address admin, address token, uint256 amount);
     event InsufficientFees(address indexed user, address indexed token, uint256 required, int256 current);
     event UserDataTransferred(address indexed fromUser, address indexed toUser, address initiator);
@@ -112,57 +117,57 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         emit FeesWithdrawn(msg.sender, token, amount);
     }
 
-    function approveSpender(address spender, bool approved) external {
+    function approveSpender(uint256 fromChainId, address spender, bool approved) external {
         require(spender != address(0), "Invalid spender address");
-        address user = spenderToUser[spender];
+        address user = spenderToUser[fromChainId][spender];
         if (user != address(0)) {
             require(user == msg.sender, "Spender is registered to another user");
         } else {
             require(approved, "Spender is not registered");
         }
 
-        approvedSpenders[msg.sender][spender] = approved;
+        approvedSpenders[msg.sender][fromChainId][spender] = approved;
         if (approved) {
-            spenderToUser[spender] = msg.sender;
+            spenderToUser[fromChainId][spender] = msg.sender;
 
             // If approving a new spender, add to the user's spender list
             bool exists = false;
             for (uint i = 0; i < userSpenders[msg.sender].length; i++) {
-                if (userSpenders[msg.sender][i] == spender) {
+                if (userSpenders[msg.sender][i].spender == spender) {
                     exists = true;
                     break;
                 }
             }
             if (!exists) {
-                userSpenders[msg.sender].push(spender);
+                userSpenders[msg.sender].push(Spender({fromChainId: fromChainId, spender: spender}));
             }
         } else {
             // If revoking approval, remove from the user's spender list
             for (uint i = 0; i < userSpenders[msg.sender].length; i++) {
-                if (userSpenders[msg.sender][i] == spender) {
+                if (userSpenders[msg.sender][i].spender == spender) {
                     userSpenders[msg.sender][i] = userSpenders[msg.sender][userSpenders[msg.sender].length - 1];
                     userSpenders[msg.sender].pop();
                     break;
                 }
             }
             // Clear the spenderToUser mapping
-            delete spenderToUser[spender];
+            delete spenderToUser[fromChainId][spender];
         }
         
-        emit SpenderApproved(msg.sender, spender, approved);
+        emit SpenderApproved(msg.sender, fromChainId, spender, approved);
     }
 
-    function feeBalance(address spender, uint256 toChainId, uint256 amount) external view returns (bool enough, uint256 balance) {
+    function feeBalance(address spender, uint256 fromChainId, uint256 toChainId, uint256 amount) external view returns (bool enough, uint256 balance) {
         address token = chainIdToFeeToken[toChainId];
         uint256 amountAndFee = amount + amount * platformFee / 10000;
-        enough = userBalances[spenderToUser[spender]][token] >= int256(amountAndFee);
-        balance = uint256(userBalances[spenderToUser[spender]][token]);
+        enough = userBalances[spenderToUser[fromChainId][spender]][token] >= int256(amountAndFee);
+        balance = uint256(userBalances[spenderToUser[fromChainId][spender]][token]);
     }
 
     function spendFees(address spender, uint256 fromChainId, uint256 toChainId, uint256 amount, bytes32 txHash) external onlyRole(AGENT_ROLE) {
-        address user = spenderToUser[spender];
+        address user = spenderToUser[fromChainId][spender];
         require(user != address(0), "Spender not registered");
-        require(approvedSpenders[user][spender], "Spender not approved");
+        require(approvedSpenders[user][fromChainId][spender], "Spender not approved");
         require(!txHashToSpent[txHash], "Already spent");
         address token = chainIdToFeeToken[toChainId];
         uint256 amountAndFee = amount + amount * platformFee / 10000;
@@ -238,7 +243,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     }
 
     // Add new helper function to get all spenders for a user
-    function getUserSpenders(address user) external view returns (address[] memory) {
+    function getUserSpenders(address user) external view returns (Spender[] memory) {
         return userSpenders[user];
     }
 
@@ -280,12 +285,12 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         }
 
         // Transfer all spender approvals
-        address[] memory spenders = userSpenders[fromUser];
+        Spender[] memory spenders = userSpenders[fromUser];
         for (uint i = 0; i < spenders.length; i++) {
-            address spender = spenders[i];
-            approvedSpenders[toUser][spender] = true;
-            approvedSpenders[fromUser][spender] = false;
-            spenderToUser[spender] = toUser;
+            Spender memory spender = spenders[i];
+            approvedSpenders[toUser][spender.fromChainId][spender.spender] = true;
+            approvedSpenders[fromUser][spender.fromChainId][spender.spender] = false;
+            spenderToUser[spender.fromChainId][spender.spender] = toUser;
         }
 
         // Transfer spender list

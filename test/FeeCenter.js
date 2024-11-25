@@ -63,6 +63,7 @@ describe("FeeCenter", function () {
             await feeCenter.configToChainToken(2, NATIVE_COIN);
             await mockToken.mint(user1.address, ethers.utils.parseEther("1000"));
             await mockToken.connect(user1).approve(feeCenter.address, ethers.utils.parseEther("1000"));
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
         });
 
         it("should deposit ERC20 tokens correctly", async function () {
@@ -92,7 +93,7 @@ describe("FeeCenter", function () {
             const txId = ethers.utils.formatBytes32String("test-tx");
             
             await feeCenter.connect(user1).depositFees(mockToken.address, depositAmount);
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
             
             await expect(
                 feeCenter.connect(agent).spendFees(
@@ -108,10 +109,10 @@ describe("FeeCenter", function () {
         it("should check fee balance correctly", async function () {
             const amount = ethers.utils.parseEther("100");
             await feeCenter.connect(user1).depositFees(mockToken.address, amount);
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
 
             const [enough, balance] = await feeCenter.feeBalance(
                 spender.address,
+                1,  // fromChainId
                 1,  // toChainId
                 ethers.utils.parseEther("50")
             );
@@ -130,14 +131,14 @@ describe("FeeCenter", function () {
             await mockToken.mint(user1.address, ethers.utils.parseEther("1000"));
             await mockToken.connect(user1).approve(feeCenter.address, ethers.utils.parseEther("1000"));
             await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("100"));
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
             
             // Spend some fees to accumulate
             const txId1 = ethers.utils.formatBytes32String("tx1");
             await feeCenter.connect(agent).spendFees(
                 spender.address,
-                1,
-                1,
+                1,  // fromChainId
+                1,  // toChainId
                 ethers.utils.parseEther("50"),
                 txId1
             );
@@ -146,11 +147,13 @@ describe("FeeCenter", function () {
             await feeCenter.connect(user1).depositFees(NATIVE_COIN, ethers.utils.parseEther("1"), {
                 value: ethers.utils.parseEther("1")
             });
+            await feeCenter.connect(user1).approveSpender(2, spender.address, true);
+            
             const txId2 = ethers.utils.formatBytes32String("tx2");
             await feeCenter.connect(agent).spendFees(
                 spender.address,
-                2,
-                2,
+                2,  // fromChainId
+                2,  // toChainId
                 ethers.utils.parseEther("0.5"),
                 txId2
             );
@@ -174,35 +177,34 @@ describe("FeeCenter", function () {
 
     describe("Spender Management", function () {
         it("should approve and revoke spenders correctly", async function () {
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
-            expect(await feeCenter.approvedSpenders(user1.address, spender.address)).to.be.true;
-            expect(await feeCenter.spenderToUser(spender.address)).to.equal(user1.address);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
+            expect(await feeCenter.approvedSpenders(user1.address, 1, spender.address)).to.be.true;
+            expect(await feeCenter.spenderToUser(1, spender.address)).to.equal(user1.address);
 
-            await feeCenter.connect(user1).approveSpender(spender.address, false);
-            expect(await feeCenter.approvedSpenders(user1.address, spender.address)).to.be.false;
-            expect(await feeCenter.spenderToUser(spender.address)).to.equal(ethers.constants.AddressZero);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, false);
+            expect(await feeCenter.approvedSpenders(user1.address, 1, spender.address)).to.be.false;
+            expect(await feeCenter.spenderToUser(1, spender.address)).to.equal(ethers.constants.AddressZero);
         });
 
         it("should handle multiple spenders for a user correctly", async function () {
-            const spender2 = user2; // Using user2 as second spender for this test
+            const spender2 = user2;
             
-            // Approve both spenders
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
-            await feeCenter.connect(user1).approveSpender(spender2.address, true);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
+            await feeCenter.connect(user1).approveSpender(1, spender2.address, true);
             
-            // Check spenders list
             const spenders = await feeCenter.getUserSpenders(user1.address);
             expect(spenders.length).to.equal(2);
-            expect(spenders).to.include(spender.address);
-            expect(spenders).to.include(spender2.address);
+            expect(spenders[0].spender).to.equal(spender.address);
+            expect(spenders[1].spender).to.equal(spender2.address);
+            expect(spenders[0].fromChainId).to.equal(1);
+            expect(spenders[1].fromChainId).to.equal(1);
             
-            // Revoke first spender
-            await feeCenter.connect(user1).approveSpender(spender.address, false);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, false);
             
-            // Check updated spenders list
             const updatedSpenders = await feeCenter.getUserSpenders(user1.address);
             expect(updatedSpenders.length).to.equal(1);
-            expect(updatedSpenders[0]).to.equal(spender2.address);
+            expect(updatedSpenders[0].spender).to.equal(spender2.address);
+            expect(updatedSpenders[0].fromChainId).to.equal(1);
         });
     });
 
@@ -212,7 +214,7 @@ describe("FeeCenter", function () {
             await mockToken.mint(user1.address, ethers.utils.parseEther("1000"));
             await mockToken.connect(user1).approve(feeCenter.address, ethers.utils.parseEther("1000"));
             await feeCenter.connect(user1).depositFees(mockToken.address, ethers.utils.parseEther("100"));
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
         });
 
         it("should spend fees correctly", async function () {
@@ -310,10 +312,11 @@ describe("FeeCenter", function () {
         });
 
         it("should get user spenders correctly", async function () {
-            await feeCenter.connect(user1).approveSpender(spender.address, true);
+            await feeCenter.connect(user1).approveSpender(1, spender.address, true);
             const spenders = await feeCenter.getUserSpenders(user1.address);
             expect(spenders.length).to.equal(1);
-            expect(spenders[0]).to.equal(spender.address);
+            expect(spenders[0].spender).to.equal(spender.address);
+            expect(spenders[0].fromChainId).to.equal(1);
         });
     });
 
