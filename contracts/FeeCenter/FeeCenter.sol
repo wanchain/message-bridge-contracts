@@ -133,7 +133,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
             // If approving a new spender, add to the user's spender list
             bool exists = false;
             for (uint i = 0; i < userSpenders[msg.sender].length; i++) {
-                if (userSpenders[msg.sender][i].spender == spender) {
+                if (userSpenders[msg.sender][i].spender == spender && userSpenders[msg.sender][i].fromChainId == fromChainId) {
                     exists = true;
                     break;
                 }

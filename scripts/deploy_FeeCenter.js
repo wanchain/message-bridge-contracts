@@ -1,6 +1,6 @@
 const hre = require("hardhat");
 
-const UPGRADE_ADMIN_ADDRESS = "0x7521EDa00E2Ce05aC4a9d8353d096CCB970d5188";
+const UPGRADE_ADMIN_ADDRESS = "0x5560aF0F46D00FCeA88627a9DF7A4798b1b10961";
 
 async function main() {
   let deployer = (await hre.ethers.getSigner()).address;
