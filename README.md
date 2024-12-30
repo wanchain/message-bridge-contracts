@@ -16,23 +16,24 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 
 | Index | Chain Name | Gateway | Chain ID |
 | --- | --- | --- | --- |
-| 1 | Avalanche Fuji Testnet | 0x8Ee72C8194ec8A527B1D4981742727437091C913 | 2147492648 |
-| 2 | Wanchain Testnet | 0xEB14407Edc497a73934dE08D5c3079BB1F5f145D | 2153201998 |
-| 3 | XDC Apothem Testnet | 0x8c1b9daD87BFC48DF48b15baA19d0FB163030169 | 2147484198 |
-| 4 | Ethereum Sepolia Testnet | 0x6c6bab7105d72c7b30bda46cb390e67a0acd8c05 | 2147483708 |
-| 5 | Arbitrum Sepolia | 0x5f7778d1fd697ae79aa11e5b628d6f51d4ef7b95 | 1073741826 |
-| 6 | Optimism Sepolia | 0x0c7a6313411c15cd3a0f5ffec922af3d8a1b900d | 2147484262 |
-| 7 | polygon amoy | 0x5522976caf971e0000183ab20cab8ebba9a90cdc | 2147484614 |
-| 8 | energi | 0x9e8aafd785f8cc9aebb4b6fbf817ee988e85fede | 2147493445 |
-| 9 | bitrock | 0xd4b5f10d61916bd6e0860144a91ac658de8a1437 | 2154655314 |
-| 10 | Kanazawa(Meld Testnet) | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f | 1073741847 |
-| 11 | BSC Testnet | 0x7198eb89cc364cdd8c81ef6c39c597712c070ac6 | 2147484362 |
-| 12 | DIONE Odyssey Testnet | 0x265b967af0cb6477fc0074e9f388fb2ba0befd18 | 1073741848 |
-| 13 | PLYR TAU Testnet | 0xc12cf8cc8eff1f39c9e60da81d11745c25c59501 | 1073741849 |
-| 14 | edeXa Testnet | 0x3a737d703a11d426f337233ed3e15e2a992258ee | 1073741850 |
-| 15 | Base Sepolia Testnet | 0xb1cfdd539890678a17a79b390c72e2619fae866b | 1073741841 |
-| 16 | Waterfall Testnet 9 | 0x10ce92bda0f7a184a1c2de322aa1a22938098442 | 1073741851 |
-| 17 | 5ire Testnet | 0x30de9d1d358ff1b60fb8057235aac35e23b7650f | 1073741853 |
+| 1 | Avalanche Fuji Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147492648 |
+| 2 | Wanchain Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2153201998 |
+| 3 | XDC Apothem Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147484198 |
+| 4 | Ethereum Sepolia Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147483708 |
+| 5 | Arbitrum Sepolia | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741826 |
+| 6 | Optimism Sepolia | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147484262 |
+| 7 | polygon amoy | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147484614 |
+| 8 | energi | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147493445 |
+| 9 | bitrock | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2154655314 |
+| 10 | BSC Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 2147484362 |
+| 11 | DIONE Odyssey Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741848 |
+| 12 | PLYR TAU Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741849 |
+| 13 | edeXa Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741850 |
+| 14 | Base Sepolia Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741841 |
+| 15 | Waterfall Testnet 9 | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741851 |
+| 16 | 5ire Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741853 |
+| 17 | Lummio Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741854 |
+
 
 #### Mainnet
 

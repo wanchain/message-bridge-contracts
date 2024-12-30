@@ -26,11 +26,9 @@ describe("WmbRetryableApp", function () {
     wmbGateway = await WmbGateway.deploy();
     await wmbGateway.deployed();
     let MockMPC = await ethers.getContractFactory("MockMPC");
-    mockMPC = await MockMPC.deploy();
+    mockMPC = await MockMPC.deploy('2153201998');
     await wmbGateway.initialize(
       owner.address,
-      '2153201998',
-      mockMPC.address,
       mockMPC.address,
     );
     chainId = await wmbGateway.chainId();

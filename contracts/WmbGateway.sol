@@ -71,7 +71,8 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
 
     // Status of a Storeman Group
     enum GroupStatus { none, initial, curveSeted, failed, selected, ready, unregistered, dismissed }
-    
+
+    event MessageDispatchedV2(bytes32 messageId, address sender, uint256 toChainId, address to, uint256 gasLimit, bytes data);    
 
     function initialize(address admin, address _cross) public initializer {
         require(admin != address(0), "WmbGateway: Invalid admin address");
@@ -107,6 +108,16 @@ contract WmbGateway is AccessControl, Initializable, ReentrancyGuard, IWmbGatewa
         messageId = _getMessageId(toChainId, to, data);
         messageGasLimit[messageId] = gasLimit;
         emit MessageDispatched(messageId, msg.sender, toChainId, to, data);
+    }
+
+    function dispatchMessageV2(uint256 toChainId, address to, uint256 gasLimit, bytes calldata data) external nonReentrant returns (bytes32 messageId) {
+        require(supportedDstChains[toChainId], "WmbGateway: Unsupported destination chain");
+        require(gasLimit <= maxGasLimit, "WmbGateway: Gas limit exceeds maximum");
+        require(gasLimit >= minGasLimit, "WmbGateway: Gas limit too low");
+        
+        messageId = _getMessageId(toChainId, to, data);
+        messageGasLimit[messageId] = gasLimit;
+        emit MessageDispatchedV2(messageId, msg.sender, toChainId, to, gasLimit, data);
     }
 
     function dispatchMessageBatch(uint256 toChainId, Message[] calldata messages) external payable nonReentrant returns (bytes32 messageId) {
