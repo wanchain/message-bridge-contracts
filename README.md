@@ -32,6 +32,8 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 14 | Base Sepolia Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741841 |
 | 15 | Waterfall Testnet 9 | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741851 |
 | 16 | 5ire Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741853 |
+| 17 | Lummio Testnet | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741854 |
+
 
 #### Mainnet
 
