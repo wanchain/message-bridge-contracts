@@ -61,6 +61,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 16 | Linea | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741842 |
 | 17 | X Layer | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741835 |
 | 18 | Celo | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147536400 |
+| 19 | edeXa | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741850 |
 
 ## WMB App
 
