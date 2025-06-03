@@ -144,7 +144,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         } else {
             // If revoking approval, remove from the user's spender list
             for (uint i = 0; i < userSpenders[msg.sender].length; i++) {
-                if (userSpenders[msg.sender][i].spender == spender) {
+                if (userSpenders[msg.sender][i].spender == spender && userSpenders[msg.sender][i].fromChainId == fromChainId) {
                     userSpenders[msg.sender][i] = userSpenders[msg.sender][userSpenders[msg.sender].length - 1];
                     userSpenders[msg.sender].pop();
                     break;
