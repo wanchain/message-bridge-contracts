@@ -85,6 +85,18 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
         emit TokenAdded(token);
     }
 
+    function removeSupportedToken(address token) external onlyRole(DEFAULT_ADMIN_ROLE) {
+        require(isSupportedToken[token], "Token not supported");
+        isSupportedToken[token] = false;
+        for (uint i = 0; i < supportedTokens.length; i++) {
+            if (supportedTokens[i] == token) {
+                supportedTokens[i] = supportedTokens[supportedTokens.length - 1];
+                supportedTokens.pop();
+                break;
+            }
+        }
+    }
+
     function depositFees(address token, uint256 amount) external nonReentrant payable {
         if (!isUserDeposited[msg.sender]) {
             allUsers.push(msg.sender);
