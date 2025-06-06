@@ -58,6 +58,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
     address public constant NATIVE_COIN = address(0);
 
     event TokenAdded(address token);
+    event TokenRemoved(address token);
     event FeesDeposited(address user, address token, uint256 amount);
     event FeesWithdrawn(address user, address token, uint256 amount);
     event FeesSpent(address indexed user, address indexed spender, uint256 fromChainId, uint256 toChainId, address token, uint256 amount, int256 newBalance, bytes32 txHash);
@@ -95,6 +96,7 @@ contract FeeCenter is AccessControl, Initializable, ReentrancyGuard {
                 break;
             }
         }
+        emit TokenRemoved(token);
     }
 
     function depositFees(address token, uint256 amount) external nonReentrant payable {
