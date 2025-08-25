@@ -37,7 +37,7 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 19 | Polygon zkEVM | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741838 |
 | 20 | Immutable zkEVM | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741855 |
 | 21 | Shido | 0xDDddd58428706FEdD013b3A761c6E40723a7911d | 1073741856 |
-
+| 22 | VeChain | 0xa1Dd5cBF77e1E78C307ecbD7c6AEea90FC71499e | 2147484466 |
 
 #### Mainnet
 
@@ -64,6 +64,10 @@ The WMB Gateway is a smart contract that acts as an intermediary between the Wan
 | 18 | Celo | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147536400 |
 | 19 | edeXa | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741850 |
 | 20 | Shido | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741856 |
+| 22 | VeChain | 0xB9D348ba81d0af31c120c6ffAec2aB724301Dbdf | 2147484466 |
+| 23 | World Chain | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 1073741857 |
+| 24 | Sonic | 0x7280E3b8c686c68207aCb1A4D656b2FC8079c033 | 2147493655 |
+
 
 ## WMB App
 
